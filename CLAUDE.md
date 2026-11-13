@@ -30,39 +30,55 @@ Team of 4–6 students (aged 18) entering the UK CanSat competition (ESERO-UK / 
 
 ## Mission
 
-**Framing:** a mini planetary descent probe / airborne demonstrator for an Earth-observation instrument. Analogues: ESA Huygens (DISR + HASI measured spectral light, temperature and pressure under a parachute on Titan), Perseverance MEDA, Sentinel-2 and CERES (reflectance/albedo), Sentinel-5P (UV). A CanSat is "a simulation of a real satellite" in the sense of having real satellite subsystems; the mission concept should be valid both from orbit and in the descent test.
+**Framing:** a mini planetary descent probe demonstrating compact atmospheric-optics instruments. Analogues: ESA Huygens (DISR + HASI measured spectral light, temperature and pressure under a parachute on Titan), Perseverance MEDA (UV, light and dust on Mars), Sentinel-5P (UV, aerosols). A CanSat is "a simulation of a real satellite" in the sense of having real satellite subsystems.
 
-**Overall objective:** measure how the atmosphere changes the light that satellites see, by recording it at every height as the CanSat falls.
+**Overall objective:** investigate how atmospheric conditions affect the light passing through the atmosphere, by measuring it at every height as the CanSat falls.
 
 **Primary mission (upgraded):** temperature and pressure telemetry every second, plus: altitude from the hypsometric equation using measured temperature, lapse-rate profile (look for inversions/stable layers), descent rate and parachute drag coefficient from pressure data.
 
-**Secondary mission:** spectral albedo and atmospheric optics during descent.
-- Upward AS7341 (10 channels, 415 nm to NIR) = incoming light reference; downward AS7341 = light reflected from the ground.
-- Reflectance = down ÷ up per wavelength → albedo, surface type, rough vegetation index (NIR channel).
-- LTR390 measures UV and how cloud/haze changes it.
-- As the CanSat falls, there is less air between it and the ground, so the change in reflectance with height directly measures the atmospheric distortion that satellites must correct for (atmospheric correction). Blue should be affected more than red (Rayleigh scattering).
+**Secondary mission (official wording, Nov 2026):** after release and during descent, investigate atmospheric optical properties by measuring spectral light intensity across multiple wavelengths and monitoring ultraviolet radiation. Aim: investigate how atmospheric conditions influence the scattering, attenuation and absorption of light, demonstrating measurement techniques applicable to atmospheric research on other planets.
+
+Quantities and **minimum** rates (not fixed – we will probably sample faster; telemetry stays at 1 Hz, higher rates go to the flash log):
+
+| Quantity | Sensor | Minimum rate |
+|---|---|---|
+| Spectral light intensity, multiple wavelength bands | AS7341 (1×) | 1 Hz |
+| UV radiation intensity | LTR390 (UV mode) | 1 Hz |
+| Ambient visible light intensity | LTR390 (ALS mode) | 1 Hz |
+| Air temperature, relative humidity | SHT45 (shared) | 1 Hz |
+| 3-axis angular velocity and acceleration | LSM6DSO32 (shared) | ~100 Hz |
+| GPS position and altitude | ATGM336H (shared) | ~1 Hz |
+
+Why each measurement:
+- **Spectral intensity (most important):** how each wavelength band changes during descent → wavelength-dependent scattering and attenuation, relevant to aerosols, clouds and haze on other planets. Blue should be affected more than red (Rayleigh scattering).
+- **UV:** planetary atmospheres absorb UV to different degrees → atmospheric shielding and surface radiation environments.
+- **Temperature and humidity:** context for optical changes (haze trapped under inversions, aerosol swelling in humid air).
+- **IMU:** movement and orientation, to account for sensor pointing during descent.
+- **GPS:** ties optical readings to location, altitude and flight conditions.
 
 **What we do with the data:**
-1. Reflectance per wavelength at each height.
-2. Plot reflectance vs height per colour.
-3. Explain changes with temperature/humidity layers (haze trapped under inversions, swelling in humid air).
-4. Build a simple atmospheric correction model from our own data.
+1. Intensity per wavelength band at each height; plot vs height per band.
+2. Band ratios (e.g. blue/red) and UV/visible ratio vs height → wavelength-dependent attenuation.
+3. Explain changes with temperature/humidity layers.
+4. Correct or filter for tilt using the IMU (sensor cosine response).
 5. Validate: pad and post-landing readings, Met Office radiosonde soundings, ERA5, CAMS aerosol forecasts.
 
-**How the missions link:** light ratios vs temperature/humidity layers; humidity explains haze scattering; upward light sensor estimates solar heating error on the temperature sensor; one combined telemetry stream.
+**How the missions link:** optical changes vs temperature/humidity layers from the primary-mission profile; humidity explains haze scattering; light sensors estimate solar heating error on the temperature sensor; one combined telemetry stream.
 
-**Known limitations (state in reports):** 20–40 s descent, may not cross a layer boundary (a flat profile is still a valid result); parachute swing reduced using channel ratios + IMU tilt, not removed; depends on weather and sun; one flight demonstrates the method, not a definitive dataset.
+**Known limitations (state in reports):** 20–40 s descent over a few hundred metres, so changes may be small and may not cross a layer boundary (a flat profile is still a valid result); parachute swing changes sensor pointing – reduced with IMU data, not removed; depends on weather and sun position; one flight demonstrates the method, not a definitive dataset.
+
+**Open points:** which way the AS7341 points (up = sky light, the default assumption); LTR390 measures UV and ambient light in separate modes, so firmware must alternate them (each reading has an integration time – check both fit in the 1 Hz cycle).
 
 ## Hardware (solderless build, ~£151 flight + ~£20 ground station)
 - Raspberry Pi Pico 2 with headers (flight computer, MicroPython or CircuitPython)
 - Waveshare SX1262 433 MHz LoRa module for Pico (includes 600 mAh LiPo, charger, power switch = master switch). Note: SX1262, not SX127x – needs an SX126x driver.
 - Pimoroni Pico Omnibus (holds Pico + LoRa module, spare pins). 94 × 52 mm, mounts lengthwise.
 - 433 MHz IPEX spring antenna (≤30 mm external)
-- 2× Adafruit AS7341 (STEMMA QT) – same I2C address 0x39, so one on each I2C bus
-- Adafruit LTR390 UV (STEMMA QT)
+- 1× Adafruit AS7341 (STEMMA QT, 10 channels, 415 nm to NIR) – I2C address 0x39
+- Adafruit LTR390 UV + ambient light (STEMMA QT)
 - Adafruit SHT45 temperature + humidity (STEMMA QT) – primary air temperature sensor
 - Adafruit BMP388 pressure (STEMMA QT) – primary pressure sensor (BME280 considered as an alternative/backup)
-- Adafruit LSM6DSO32 IMU (±32 g) – tilt/swing correction, launch/landing detection
+- Adafruit LSM6DSO32 IMU (6-DoF: accelerometer ±32 g + gyroscope, no magnetometer) – tilt/swing correction, launch/landing detection
 - ATGM336H GPS (UART) – recovery and wind profile from drift
 - STEMMA QT cables + 2× STEMMA QT-to-female-socket leads; female jumpers for GPS
 - PTFE 1 mm diffuser over sensor windows (passes UV)
