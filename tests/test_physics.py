@@ -75,3 +75,23 @@ def test_simulation_settles_to_terminal_velocity():
     r = simulate_descent(0.325, cda, lambda h: 1.225, h0_m=400, v0_m_s=20)
     assert r.landing_speed_m_s == pytest.approx(12.0, rel=1e-3)
     assert r.descent_time_s == pytest.approx(400 / 12, rel=0.05)
+
+
+def test_lora_airtime_matches_semtech():
+    from cansat_design.telemetry import lora_airtime_s
+    # SF7, 125 kHz, CR 4/5, 8-symbol preamble, 10-byte payload: 41.2 ms (Semtech calculator)
+    assert lora_airtime_s(10) == pytest.approx(0.04122, abs=2e-4)
+
+
+def test_sun_position_at_equinox():
+    from datetime import datetime
+    from cansat_design.optics import sun_position
+    el, az = sun_position(datetime(2027, 3, 20, 12, 0), 52.0, 0.0)
+    assert el == pytest.approx(90 - 52, abs=1.0)            # declination ≈ 0 at the equinox
+    assert az == pytest.approx(180, abs=5)
+
+
+def test_rayleigh_optical_depth():
+    from cansat_design.optics import rayleigh_tau
+    assert rayleigh_tau(550) == pytest.approx(0.097, abs=0.002)
+    assert rayleigh_tau(450) / rayleigh_tau(680) == pytest.approx((680 / 450) ** 4, rel=0.1)  # ~λ⁻⁴

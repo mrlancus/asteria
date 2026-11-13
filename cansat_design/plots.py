@@ -123,3 +123,30 @@ def plot_sweeps(d, sva, svm, svs, outdir):
     fig.tight_layout()
     paths.append(_save(fig, outdir, "sweep_swing_vs_spill.png"))
     return paths
+
+
+def plot_mission(d, outdir):
+    """Secondary mission: expected change per band vs the reading error from tilt."""
+    if not d.bands:
+        return None
+    from .optics import tilt_error_pct
+    opt = d.cfg.optics
+    bands = sorted(d.bands, key=lambda b: b.wavelength_nm)
+    wl = [b.wavelength_nm for b in bands]
+    fig, (a1, a2) = plt.subplots(2, 1, figsize=(7, 6.5), sharex=True)
+    a1.plot(wl, [abs(b.global_change_pct) for b in bands], "o-", color="#eb6834", label="Level sensor (direct + diffuse)")
+    a1.plot(wl, [abs(b.direct_change_pct) for b in bands], "o-", color="#1baf7a", label="Direct sunlight only")
+    a1.set_title(f"Expected dimming from {d.cfg.mission.apogee_m:.0f} m to the ground (simple model, "
+                 f"sun {d.sun_elevation_deg:.0f}° up)")
+    a1.set_ylabel("Change (%)")
+    a1.legend(loc="upper right")
+    ramp = ["#2a78d6", "#6ea3e6", "#a9c8f0"]          # one hue: larger angle error = darker
+    for e, col in zip(sorted(opt.angle_errors_deg, reverse=True), ramp):
+        a2.plot(wl, [tilt_error_pct(b.direct_fraction, d.sun_elevation_deg, e) for b in bands], "o-",
+                color=col, label=f"{e:.0f}° angle error")
+    a2.set_title("Reading error from tilting towards the sun")
+    a2.set_ylabel("Error (%)")
+    a2.set_xlabel("Wavelength (nm) – AS7341 bands, LTR390 UV at ~320 nm")
+    a2.legend(loc="upper left")
+    fig.tight_layout()
+    return _save(fig, outdir, "mission_signal_vs_tilt.png")

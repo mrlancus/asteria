@@ -3,7 +3,9 @@
 import math
 from dataclasses import dataclass, field
 
+from . import optics as O
 from . import parachute as P
+from . import telemetry as T
 from .atmosphere import G, density_profile, ground_density
 from .descent import simulate_descent, simulate_swing, swing_damping
 from .mass import battery_life_h, mass_budget, volume_check
@@ -35,6 +37,21 @@ class Design:
     packets: int
     all_shapes: dict = field(default_factory=dict)   # shape -> (Canopy, ParachuteMass)
     checks: list = field(default_factory=list)
+    # Cost
+    cost_flight_gbp: float = 0.0
+    cost_ground_gbp: float = 0.0
+    # Secondary mission
+    sun_elevation_deg: float = 0.0
+    sun_azimuth_deg: float = 0.0
+    bands: list = field(default_factory=list)        # optics.BandSignal per band
+    ratio_signal_pct: float = 0.0                    # blue/red change, level sensor
+    ratio_direct_signal_pct: float = 0.0             # blue/red change, direct beam only
+    ratio_noise_pct: dict = field(default_factory=dict)  # angle error (deg) -> blue/red tilt error (%)
+    canopy_view: object = None
+    # Data and radio
+    airtime_s: float = 0.0
+    duty_cycle: float = 0.0
+    log: object = None
 
 
 def design(cfg) -> Design:
@@ -72,8 +89,37 @@ def design(cfg) -> Design:
                volume_check(cfg, budget.ballast_to_design_g), vt,
                P.opening_shock(pc, cda, rho), P.speed_for_load(pc, cda, rho, pc.attachment_rating_n),
                desc, swing, int(desc.descent_time_s * ms.telemetry_hz), all_shapes)
+    mission_extras(d)
     d.checks = rule_checks(d)
     return d
+
+
+def mission_extras(d: Design) -> None:
+    """Cost, secondary-mission optics, radio airtime and logging budget."""
+    cfg, opt = d.cfg, d.cfg.optics
+    d.cost_flight_gbp = sum(c.cost_gbp for c in cfg.components) + cfg.parachute.materials_cost_gbp
+    d.cost_ground_gbp = sum(c.cost_gbp for c in cfg.ground)
+
+    d.sun_elevation_deg, d.sun_azimuth_deg = O.sun_position(cfg.launch.time_utc, cfg.launch.latitude_deg,
+                                                            cfg.launch.longitude_deg)
+    if d.sun_elevation_deg > 5:
+        d.bands = O.band_signals(opt, d.sun_elevation_deg, cfg.mission.apogee_m, cfg.air.site_elevation_m)
+        blue, red = (next(b for b in d.bands if b.wavelength_nm == w) for w in opt.ratio_pair_nm)
+        d.ratio_signal_pct = O.ratio_error_pct(blue.global_change_pct, red.global_change_pct)
+        d.ratio_direct_signal_pct = O.ratio_error_pct(blue.direct_change_pct, red.direct_change_pct)
+        for e in opt.angle_errors_deg:
+            d.ratio_noise_pct[e] = abs(O.ratio_error_pct(
+                O.tilt_error_pct(blue.direct_fraction, d.sun_elevation_deg, e),
+                O.tilt_error_pct(red.direct_fraction, d.sun_elevation_deg, e)))
+    pc = cfg.parachute
+    d.canopy_view = O.canopy_view(d.canopy.width_m, P.line_length(pc, d.canopy), pc.riser_length_m,
+                                  pc.inflated_width_ratio, d.sun_elevation_deg)
+
+    r = cfg.radio
+    d.airtime_s = T.lora_airtime_s(r.payload_bytes, r.spreading_factor, r.bandwidth_hz, r.coding_rate,
+                                   r.preamble_symbols)
+    d.duty_cycle = d.airtime_s * r.packets_per_s
+    d.log = T.log_budget(cfg.logging)
 
 
 def _pf(ok: bool) -> str:
@@ -116,8 +162,32 @@ def rule_checks(d: Design) -> list[Check]:
     checks.append(Check("Telemetry at 1 Hz during descent",
                         f"{d.packets} packets in {d.descent.descent_time_s:.0f} s from {ms.apogee_m:.0f} m",
                         _pf(ms.telemetry_hz >= 1.0)))
+    checks.append(Check(f"Budget ≤ £{cfg.mass.budget_gbp:.0f} (flight hardware)",
+                        f"£{d.cost_flight_gbp:.2f} (ground station £{d.cost_ground_gbp:.2f}, not counted)",
+                        _pf(d.cost_flight_gbp <= cfg.mass.budget_gbp)))
+    r = cfg.radio
+    checks.append(Check(f"Radio duty cycle ≤ {r.max_duty_cycle:.0%} (433 MHz band)",
+                        f"{d.duty_cycle:.1%} ({d.airtime_s * 1000:.0f} ms per {r.payload_bytes}-byte packet, "
+                        f"SF{r.spreading_factor})", _pf(d.duty_cycle <= r.max_duty_cycle)))
+    need = cfg.logging.full_rate_minutes_needed
+    checks.append(Check(f"Flash holds ≥ {need:.0f} min of full-rate logging",
+                        f"{d.log.minutes_available:.1f} min at {d.log.bytes_per_s / 1000:.1f} KB/s "
+                        f"({cfg.logging.free_flash_mb:.1f} MB free, estimate)",
+                        "PASS" if d.log.minutes_available >= 1.2 * need else
+                        ("WARN" if d.log.minutes_available >= need else "FAIL")))
+    if d.bands:
+        best = min(d.ratio_noise_pct)
+        snr = abs(d.ratio_signal_pct) / d.ratio_noise_pct[best]
+        checks.append(Check("Secondary: blue/red signal ≥ 2× tilt error",
+                            f"signal {abs(d.ratio_signal_pct):.2f} % vs error {d.ratio_noise_pct[best]:.2f} % "
+                            f"at {best:.0f}° (×{snr:.1f}); direct beam {abs(d.ratio_direct_signal_pct):.1f} %",
+                            "PASS" if snr >= 2 else ("WARN" if snr >= 1 else "FAIL")))
+        checks.append(Check("Canopy can't shade the sun in steady descent",
+                            f"needs a {d.canopy_view.sun_block_swing_deg:.0f}° swing towards the sun "
+                            f"(sun {d.sun_elevation_deg:.0f}° up)",
+                            _pf(d.canopy_view.sun_block_swing_deg > ms.swing_initial_deg)))
     for rule in ["Master power switch easily accessible", "Battery easily accessible",
                  "Radio frequency changeable in software", "Parachute reusable, bright fabric, no motorised recovery",
-                 "Nothing beyond can diameter until released", "Budget ≤ £400 (see parts sheet)"]:
+                 "Nothing beyond can diameter until released"]:
         checks.append(Check(rule, "check by hand", "MANUAL"))
     return checks

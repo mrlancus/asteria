@@ -6,6 +6,7 @@ measure the real parts – replace them as parts arrive and set estimate=False.
 """
 
 from dataclasses import dataclass, field
+from datetime import datetime
 
 
 @dataclass
@@ -27,27 +28,41 @@ class Component:
     current_ma: float = 0.0             # average current draw, for the battery-life check
     qty: int = 1
     estimate: bool = True               # True until weighed / measured
+    cost_gbp: float = 0.0               # what we pay for this line (whole pack), from the parts sheet
 
 
+# Costs mirror the team parts sheet (prices checked 12–13 Nov 2026) – the sheet is the
+# source of truth, update both. Parachute fabric and swivels are in Parachute.materials_cost_gbp.
 def default_components() -> list[Component]:
-    """Seeded from the hardware list in CLAUDE.md. ALL VALUES ARE ESTIMATES."""
+    """Flight hardware, seeded from CLAUDE.md. MASSES, SIZES AND CURRENTS ARE ESTIMATES."""
     return [
-        Component("Raspberry Pi Pico 2 (with headers)", 4.0, (51, 21, 12), current_ma=25),
-        Component("Waveshare SX1262 433 MHz LoRa module", 8.0, (51, 21, 10), current_ma=15),  # TX ~45 mA bursts, averaged at 1 Hz
+        Component("Raspberry Pi Pico 2 (with headers)", 4.0, (51, 21, 12), current_ma=25, cost_gbp=5.80),
+        Component("Waveshare SX1262 433 MHz LoRa module", 8.0, (51, 21, 10), current_ma=15, cost_gbp=13.90),  # TX ~45 mA bursts, averaged at 1 Hz
         Component("600 mAh LiPo (with LoRa module)", 12.0, (48, 30, 6)),
-        Component("Pimoroni Pico Omnibus", 12.0, (94, 52, 15)),
-        Component("433 MHz IPEX spring antenna", 2.0, None),
-        Component("Adafruit AS7341 spectral sensor", 1.5, (25, 18, 5), current_ma=0.5),
-        Component("Adafruit LTR390 UV + ambient light", 1.2, (25, 18, 5), current_ma=0.1),
-        Component("Adafruit SHT45 temp + humidity", 1.0, (25, 18, 5), current_ma=0.1),
-        Component("Adafruit BMP388 pressure", 1.2, (25, 18, 5), current_ma=0.7),
-        Component("Adafruit LSM6DSO32 IMU", 1.5, (25, 18, 5), current_ma=0.6),
-        Component("Adafruit BNO085 9-DoF orientation", 2.0, (25, 18, 5), current_ma=12),
-        Component("ATGM336H GPS + patch antenna", 8.0, (30, 25, 10), current_ma=25),
-        Component("STEMMA QT cables + jumper leads", 1.5, (30, 10, 5), qty=7),
-        Component("PTFE 1 mm diffusers", 0.5, None, qty=2),
-        Component("3D-printed PETG shell + bulkheads", 60.0, None),
+        Component("Pimoroni Pico Omnibus", 12.0, (94, 52, 15), cost_gbp=8.40),
+        Component("433 MHz IPEX spring antenna", 2.0, None, cost_gbp=6.99),                 # 5-pack
+        Component("Adafruit AS7341 spectral sensor", 1.5, (25, 18, 5), current_ma=0.5, cost_gbp=15.60),
+        Component("Adafruit LTR390 UV + ambient light", 1.2, (25, 18, 5), current_ma=0.1, cost_gbp=4.80),
+        Component("Adafruit SHT45 temp + humidity", 1.0, (25, 18, 5), current_ma=0.1, cost_gbp=12.10),
+        Component("Adafruit BMP388 pressure", 1.2, (25, 18, 5), current_ma=0.7, cost_gbp=9.70),
+        Component("Adafruit LSM6DSO32 IMU", 1.5, (25, 18, 5), current_ma=0.6, cost_gbp=11.20),
+        Component("Adafruit BNO085 9-DoF orientation", 2.0, (25, 18, 5), current_ma=12, cost_gbp=27.00),
+        Component("ATGM336H GPS + patch antenna", 8.0, (30, 25, 10), current_ma=25, cost_gbp=7.52),
+        Component("STEMMA QT cables + jumper leads", 1.5, (30, 10, 5), qty=7, cost_gbp=18.22),  # cable kit + lead + jumpers
+        Component("PTFE 1 mm diffusers", 0.5, None, qty=2, cost_gbp=4.75),
+        Component("3D-printed PETG shell + bulkheads", 60.0, None),                          # school printer
         Component("Fasteners, hot glue, tape", 10.0, (20, 20, 10)),
+    ]
+
+
+def ground_components() -> list[Component]:
+    """Ground support equipment – costed separately, outside the £400 budget (confirm with team leader)."""
+    return [
+        Component("Raspberry Pi Pico 2 (ground receiver)", 0, cost_gbp=5.80),
+        Component("Waveshare SX1262 433 MHz LoRa module (ground)", 0, cost_gbp=13.90),
+        Component("AS7341 (ground reference)", 0, cost_gbp=15.60),
+        Component("LTR390 (ground reference)", 0, cost_gbp=4.80),
+        Component("STEMMA QT to female socket lead (ground)", 0, cost_gbp=5.24),
     ]
 
 
@@ -58,6 +73,7 @@ class MassLimits:
     max_kg: float = 0.350
     ballast_density_g_cm3: float = 7.85  # steel; use 11.3 for lead
     parachute_counts_in_mass: bool = True  # assume the 300–350 g limit includes the parachute (conservative)
+    budget_gbp: float = 400.0           # flight hardware only; ground equipment excluded
 
 
 @dataclass
@@ -82,6 +98,8 @@ class Parachute:
     opening_load_factor: float = 1.8    # Cx – conservative value for solid flat canopies
     inflation_time_s: float = 0.3       # used in the descent simulation
     attachment_rating_n: float = 50.0   # rule: connection must withstand 50 N
+    materials_cost_gbp: float = 11.57   # ripstop 1 m £6.99 + swivel 10-pack £4.58 (parts sheet)
+    inflated_width_ratio: float = 0.67  # inflated canopy diameter ÷ flat width (typical for flat canopies)
 
 
 @dataclass
@@ -113,6 +131,57 @@ class Mission:
 
 
 @dataclass
+class Launch:
+    """When and where – for the sun position. Default: national final, York area, midday."""
+    time_utc: datetime = datetime(2027, 4, 28, 12, 0)
+    latitude_deg: float = 54.0
+    longitude_deg: float = -1.1
+
+
+@dataclass
+class Optics:
+    """Simple atmosphere for the expected-signal estimate (order of magnitude only)."""
+    bands_nm: tuple = (415, 445, 480, 515, 555, 590, 630, 680, 910, 320)  # AS7341 F1–F8, NIR; LTR390 UV ~320
+    ratio_pair_nm: tuple = (445, 680)    # blue / red ratio used as the main result
+    aod_550: float = 0.15                # aerosol optical depth at 550 nm (UK typical ~0.1–0.2)
+    angstrom: float = 1.3                # aerosol Ångström exponent (small particles ~1.5, dust/sea salt ~0.5)
+    aerosol_scale_height_m: float = 1000.0
+    aerosol_ssa: float = 0.9             # single-scattering albedo (fraction scattered, not absorbed)
+    rayleigh_down_fraction: float = 0.5  # share of Rayleigh-scattered light that heads down
+    aerosol_down_fraction: float = 0.75  # aerosols scatter mostly forwards
+    angle_errors_deg: tuple = (5.0, 2.0, 1.0)  # uncorrected 5° swing, level-only readings, BNO085-corrected
+
+
+@dataclass
+class Radio:
+    """LoRa settings for the airtime / duty-cycle check (Semtech airtime formula)."""
+    spreading_factor: int = 7
+    bandwidth_hz: float = 125e3
+    coding_rate: int = 1                 # 1 = 4/5 … 4 = 4/8
+    preamble_symbols: int = 8
+    payload_bytes: int = 40
+    packets_per_s: float = 1.0
+    max_duty_cycle: float = 0.10         # UK 433 MHz band (IR 2030) – confirm
+
+
+@dataclass
+class Logging:
+    """Planned log streams (name, rate Hz, bytes per sample incl. 4-byte timestamp) – see CLAUDE.md."""
+    streams: tuple = (
+        ("BMP388 pressure + temp", 25, 12),
+        ("SHT45 temp + RH", 5, 12),
+        ("AS7341 11 channels", 5, 26),
+        ("LTR390 UV/ALS", 4, 8),
+        ("BNO085 quaternion", 100, 12),
+        ("LSM6DSO32 accel + gyro", 104, 16),
+        ("GPS fix", 1, 20),
+    )
+    free_flash_mb: float = 2.0           # Pico 2 has 4 MB; CircuitPython + code take ~2 MB (estimate – check)
+    full_rate_minutes_needed: float = 10.0  # launch → landing + recovery margin
+    sht45_time_constant_s: float = 2.0
+
+
+@dataclass
 class Config:
     envelope: Envelope = field(default_factory=Envelope)
     components: list[Component] = field(default_factory=default_components)
@@ -120,3 +189,8 @@ class Config:
     parachute: Parachute = field(default_factory=Parachute)
     air: Air = field(default_factory=Air)
     mission: Mission = field(default_factory=Mission)
+    ground: list[Component] = field(default_factory=ground_components)
+    launch: Launch = field(default_factory=Launch)
+    optics: Optics = field(default_factory=Optics)
+    radio: Radio = field(default_factory=Radio)
+    logging: Logging = field(default_factory=Logging)

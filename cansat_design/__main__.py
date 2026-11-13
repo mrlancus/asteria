@@ -6,6 +6,7 @@ Prints the design summary, runs the sweeps, saves plots, CSVs and the canopy SVG
 import argparse
 from pathlib import Path
 
+from . import optics as O
 from . import parachute as P
 from . import sweeps
 from .config import Config
@@ -71,6 +72,47 @@ def summary(d) -> str:
     add(f"  Swing (illustrative): L {s.length_m:.2f} m, period {s.period_s:.2f} s, ζ {s.zeta:.2f}; "
         f"below {ms.swing_threshold_deg:.0f}° after {settle}")
 
+    add(f"\nCOST  flight £{d.cost_flight_gbp:.2f} of £{cfg.mass.budget_gbp:.0f} (left £{cfg.mass.budget_gbp - d.cost_flight_gbp:.2f}), "
+        f"ground station £{d.cost_ground_gbp:.2f} (not counted) – prices from the parts sheet")
+    for c in sorted(cfg.components, key=lambda c: -c.cost_gbp)[:5]:
+        add(f"  {c.name:<44} £{c.cost_gbp:6.2f}")
+    add(f"  {'Parachute materials (ripstop, swivels)':<44} £{pc.materials_cost_gbp:6.2f}")
+
+    add(f"\nPRIMARY MISSION SAMPLING  (descent {r.descent_time_s:.0f} s at ~{d.v_terminal:.0f} m/s)")
+    for name, rate, _ in cfg.logging.streams[:2]:
+        add(f"  {name:<26} {rate:>4} Hz → {rate * r.descent_time_s:5.0f} readings, one every {d.v_terminal / rate:4.1f} m")
+    lag = cfg.logging.sht45_time_constant_s
+    add(f"  SHT45 lag {lag:.0f} s smears the temperature profile over ~{lag * d.v_terminal:.0f} m – correct with "
+        "T_air ≈ T + τ·dT/dt")
+
+    if d.bands:
+        add(f"\nSECONDARY MISSION – EXPECTED SIGNAL  (sun {d.sun_elevation_deg:.0f}° up at "
+            f"{cfg.launch.time_utc:%d %b %Y %H:%M} UTC, haze AOD {cfg.optics.aod_550} at 550 nm; simple model)")
+        add(f"  {'Band nm':>8}{'Direct %':>10}{'Level sensor':>14}{'Direct beam':>13}   tilt error at "
+            + ", ".join(f"{e:.0f}°" for e in cfg.optics.angle_errors_deg))
+        for b in d.bands:
+            errs = ", ".join(f"{O.tilt_error_pct(b.direct_fraction, d.sun_elevation_deg, e):.1f} %"
+                             for e in cfg.optics.angle_errors_deg)
+            add(f"  {b.wavelength_nm:>8.0f}{100 * b.direct_fraction:>9.0f}%{b.global_change_pct:>12.1f} %"
+                f"{b.direct_change_pct:>11.1f} %   {errs}")
+        blue, red = cfg.optics.ratio_pair_nm
+        noise = ", ".join(f"{v:.2f} % at {k:.0f}°" for k, v in d.ratio_noise_pct.items())
+        add(f"  Blue/red ({blue}/{red}) change over the descent: {d.ratio_signal_pct:.2f} % on a level sensor, "
+            f"{d.ratio_direct_signal_pct:.1f} % in the direct beam")
+        add(f"  Blue/red tilt error: {noise}")
+        add("  → separating direct from diffuse light (swing scanner / sun-blocking disc) gives a ~5× larger signal")
+    cv = d.canopy_view
+    add(f"  Canopy seen from the sensors: {cv.half_angle_deg:.0f}° half-angle, blocks ~{cv.diffuse_blocked_pct:.0f} % "
+        f"of diffuse sky light; shades the sun only if swing > {cv.sun_block_swing_deg:.0f}° towards it")
+
+    lb, rc = d.log, cfg.radio
+    add(f"\nDATA AND RADIO")
+    add(f"  Telemetry: {rc.payload_bytes}-byte packet, SF{rc.spreading_factor}/{rc.bandwidth_hz / 1000:.0f} kHz → "
+        f"{d.airtime_s * 1000:.0f} ms on air, duty cycle {d.duty_cycle:.1%} (limit {rc.max_duty_cycle:.0%})")
+    add(f"  Flash log at full rate: {lb.bytes_per_s / 1000:.1f} KB/s → {lb.minutes_available:.1f} min in "
+        f"{cfg.logging.free_flash_mb:.1f} MB; biggest: "
+        + ", ".join(f"{n} {b / 1000:.1f} KB/s" for n, _, b in sorted(lb.per_stream, key=lambda x: -x[2])[:2]))
+
     add("\nRULE CHECKS")
     for ch in d.checks:
         add(f"  [{ch.status:^6}] {ch.rule:<48} {ch.value}")
@@ -114,6 +156,8 @@ def main(argv=None):
     out.mkdir(parents=True, exist_ok=True)
     sva, svm, svs = sweeps.speed_vs_area(d), sweeps.speed_vs_mass(d), sweeps.swing_vs_spill(d)
     files = [plots.plot_descent(d, out), *plots.plot_sweeps(d, sva, svm, svs, out)]
+    if (mp := plots.plot_mission(d, out)):
+        files.append(mp)
     shapes = list(P.SHAPES)
     sweeps.save_csv(out / "sweep_speed_vs_area.csv", ["area_m2", *shapes], [sva["area_m2"], *[sva[s] for s in shapes]])
     sweeps.save_csv(out / "sweep_speed_vs_mass.csv", ["mass_kg", "speed_m_s"], [svm["mass_kg"], svm["speed_m_s"]])
