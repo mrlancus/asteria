@@ -125,18 +125,13 @@ def _svg(body, w, h, view=None):
             f'viewBox="{vb[0]:.2f} {vb[1]:.2f} {vb[2]:.2f} {vb[3]:.2f}">\n{body}\n</svg>\n')
 
 
-def export_svg(canopy: P.Canopy, pc, outdir) -> list[Path]:
-    """Write canopy_pattern.svg (full size) and canopy_A4_rRcC.svg tiles. Returns paths."""
-    outdir = Path(outdir)
+def svg_files(canopy: P.Canopy, pc) -> dict[str, str]:
+    """Return {filename: svg text} for the full-size pattern and its A4 tiles."""
     body, w, h = build_drawing(canopy, pc)
-    paths = [outdir / "canopy_pattern.svg"]
-    paths[0].write_text(_svg(body, w, h))
-
+    files = {"canopy_pattern.svg": _svg(body, w, h)}
     pw, ph = A4[0] - 2 * MARGIN, A4[1] - 2 * MARGIN
     nx = max(1, math.ceil((w - OVERLAP) / (pw - OVERLAP)))
     ny = max(1, math.ceil((h - OVERLAP) / (ph - OVERLAP)))
-    for old in outdir.glob("canopy_A4_*.svg"):
-        old.unlink()
     for r in range(ny):
         for c in range(nx):
             x0, y0 = c * (pw - OVERLAP), r * (ph - OVERLAP)
@@ -148,7 +143,17 @@ def export_svg(canopy: P.Canopy, pc, outdir) -> list[Path]:
                     f'<text x="{MARGIN}" y="{MARGIN - 3}" font-family="sans-serif" font-size="3">'
                     f'Row {r + 1}, column {c + 1} of {ny} × {nx} – overlap {OVERLAP:.0f} mm with neighbours, '
                     f'tape edges together</text>')
-            p = outdir / f"canopy_A4_r{r + 1}c{c + 1}.svg"
-            p.write_text(_svg(page, *A4))
-            paths.append(p)
+            files[f"canopy_A4_r{r + 1}c{c + 1}.svg"] = _svg(page, *A4)
+    return files
+
+
+def export_svg(canopy: P.Canopy, pc, outdir) -> list[Path]:
+    """Write canopy_pattern.svg (full size) and canopy_A4_rRcC.svg tiles. Returns paths."""
+    outdir = Path(outdir)
+    for old in outdir.glob("canopy_A4_*.svg"):
+        old.unlink()
+    paths = []
+    for name, text in svg_files(canopy, pc).items():
+        paths.append(outdir / name)
+        paths[-1].write_text(text)
     return paths

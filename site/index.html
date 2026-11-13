@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Asteria Parachute Calculator</title>
+  <meta name="description" content="UK CanSat 2026–27 parachute and design calculator – runs our cansat_design Python package in the browser.">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="wrap">
+      <h1>Asteria parachute calculator</h1>
+      <p class="sub">UK CanSat 2026–27 · sizes the parachute, builds the mass budget, simulates the descent and checks the rules. Runs our <code>cansat_design</code> Python code in your browser.</p>
+    </div>
+  </header>
+
+  <main class="wrap layout">
+    <form id="form" class="panel inputs" autocomplete="off">
+      <h2>Inputs</h2>
+      <label>Parachute shape <select name="shape" id="shape"></select></label>
+      <div class="grid2">
+        <label>Flight mass (g) <input name="mass_g" type="number" step="1" min="200" max="500"></label>
+        <label>Target speed (m/s) <input name="speed" type="number" step="0.5" min="5" max="25"></label>
+        <label>Spill hole (% width) <input name="spill" type="number" step="1" min="0" max="45"></label>
+        <label>Apogee (m) <input name="apogee" type="number" step="10" min="10" max="3000"></label>
+      </div>
+      <details>
+        <summary>More parachute settings</summary>
+        <div class="grid2">
+          <label>Cd override <input name="cd" type="number" step="0.01" min="0.1" max="3" placeholder="shape default"></label>
+          <label>Opening speed (m/s) <input name="opening_speed" type="number" step="1" min="0" max="80"></label>
+          <label>Fabric (g/m²) <input name="fabric_g_m2" type="number" step="1" min="5" max="200"></label>
+          <label>Seam allowance (mm) <input name="seam_mm" type="number" step="1" min="0" max="30"></label>
+          <label>Line length (× width) <input name="line_factor" type="number" step="0.05" min="0.5" max="3"></label>
+        </div>
+      </details>
+      <details>
+        <summary>Air</summary>
+        <div class="grid2">
+          <label>Density (kg/m³) <input name="density" type="number" step="0.001" min="0.5" max="1.5"></label>
+          <span></span>
+          <label>Temperature (°C) <input name="temperature_c" type="number" step="0.1" placeholder="optional"></label>
+          <label>Pressure (hPa) <input name="pressure_hpa" type="number" step="0.1" placeholder="optional"></label>
+        </div>
+        <p class="hint">Fill in both temperature and pressure to compute the density from them instead.</p>
+      </details>
+      <details>
+        <summary>Components (mass budget)</summary>
+        <p class="hint">Masses are estimates until weighed – untick “est.” once you have weighed a part.</p>
+        <div class="scroll"><table class="comp">
+          <thead><tr><th>Part</th><th>g</th><th>Qty</th><th>est.</th></tr></thead>
+          <tbody id="comps"></tbody>
+        </table></div>
+      </details>
+      <label class="check"><input type="checkbox" id="sweeps" checked> Include sweep plots (slower)</label>
+      <button type="submit" id="run" disabled>Loading…</button>
+      <p id="status" class="hint" role="status">Starting Python (first load takes ~10–20 s)…</p>
+    </form>
+
+    <section id="results" class="results" aria-live="polite">
+      <div class="tiles" id="tiles"></div>
+
+      <div class="panel">
+        <h2>Rule checks</h2>
+        <table class="checks"><tbody id="checks"></tbody></table>
+      </div>
+
+      <div class="panel">
+        <h2>Canopy size per shape</h2>
+        <div class="scroll"><table class="data">
+          <thead><tr><th>Shape</th><th>Cd0</th><th>Area m²</th><th>Width cm</th><th>Hole cm</th><th>Mass g</th><th>Dimensions</th></tr></thead>
+          <tbody id="shapes"></tbody>
+        </table></div>
+      </div>
+
+      <div class="panel">
+        <h2>Canopy pattern</h2>
+        <div id="pattern" class="pattern"></div>
+        <div id="downloads" class="downloads"></div>
+        <p class="hint">Full-size SVG for laser cutting, or A4 tiles with 10 mm overlap. Print at 100 % (“actual size”) and check the 100 mm scale bar before cutting.</p>
+      </div>
+
+      <div class="panel">
+        <h2>Descent simulation</h2>
+        <div id="plot-descent" class="plot"></div>
+      </div>
+
+      <div class="panel" id="sweep-panel">
+        <h2>Sweeps</h2>
+        <div id="plot-sweeps" class="plot"></div>
+        <p class="hint">The swing model's damping is a placeholder until calibrated from filmed drop tests.</p>
+      </div>
+
+      <details class="panel">
+        <summary>Full text summary</summary>
+        <pre id="summary"></pre>
+      </details>
+    </section>
+  </main>
+
+  <footer class="wrap foot">
+    <p>Assumptions are listed in the repo README. This tool was written with an AI tool (Claude Code, Anthropic, November 2026) – reference it as AI-assisted if you use its figures or text in competition reports.</p>
+  </footer>
+  <script src="app.js"></script>
+</body>
+</html>

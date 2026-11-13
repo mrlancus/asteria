@@ -81,3 +81,16 @@ Pattern key: solid black = cut line (includes seam allowance), dashed blue = sti
 ### Referencing in reports
 
 This package was written with an AI tool (Claude Code, Anthropic, November 2026). Any figure, table or text from it used in the PDR or other competition reports must be referenced as AI-assisted, with the tool name and date. Plots and SVGs carry a footer saying so.
+
+### Website
+
+`site/` is a static web page that runs the same `cansat_design` Python code in the browser (Pyodide – Python compiled to WebAssembly, loaded from the jsDelivr CDN). No server, no separate JavaScript copy of the maths: change the Python, push, and the website uses the new code. The first visit takes ~10–20 s while numpy, scipy and matplotlib download; after that each calculation takes about a second.
+
+Try it locally:
+
+```bash
+bash site/build.sh
+python3 -m http.server -d dist 8000      # then open http://localhost:8000
+```
+
+**Cloudflare Pages settings:** build command `bash site/build.sh`, build output directory `dist`, no framework preset. If you add a new `.py` file to `cansat_design/`, also add it to `PY_FILES` in `site/worker.js`.
