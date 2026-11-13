@@ -38,16 +38,22 @@ Team of 4–6 students (aged 18) entering the UK CanSat competition (ESERO-UK / 
 
 **Secondary mission (official wording, Nov 2026):** after release and during descent, investigate atmospheric optical properties by measuring spectral light intensity across multiple wavelengths and monitoring ultraviolet radiation. Aim: investigate how atmospheric conditions influence the scattering, attenuation and absorption of light, demonstrating measurement techniques applicable to atmospheric research on other planets.
 
-Quantities and **minimum** rates (not fixed – we will probably sample faster; telemetry stays at 1 Hz, higher rates go to the flash log):
+Quantities and planned rates. The competition minimum is 1 Hz; we **log faster to flash** (full rate only after launch detection, binary format) and **transmit telemetry at 1 Hz**. Rates are a starting point – adjust after bench tests.
 
-| Quantity | Sensor | Minimum rate |
-|---|---|---|
-| Spectral light intensity, multiple wavelength bands | AS7341 (1×) | 1 Hz |
-| UV radiation intensity | LTR390 (UV mode) | 1 Hz |
-| Ambient visible light intensity | LTR390 (ALS mode) | 1 Hz |
-| Air temperature, relative humidity | SHT45 (shared) | 1 Hz |
-| 3-axis angular velocity and acceleration | LSM6DSO32 (shared) | ~100 Hz |
-| GPS position and altitude | ATGM336H (shared) | ~1 Hz |
+| Quantity | Sensor | Log rate | Reason |
+|---|---|---|---|
+| Air pressure (primary) | BMP388 | ~25 Hz | canopy opening dynamics, descent rate, Cd |
+| Air temperature, relative humidity (primary) | SHT45 | ~5 Hz | sensor lag ~2 s (T) / ~4 s (RH) – average noise, lag-correct |
+| Spectral light intensity, multiple wavelength bands | AS7341 (1×, facing up) | ~5 Hz | ~7 samples per ~1.4 s swing (swing scanner) |
+| UV radiation intensity | LTR390 (UV mode) | ~2 Hz | UV needs ~100 ms integration |
+| Ambient visible light intensity | LTR390 (ALS mode, alternating with UV) | ~2 Hz | |
+| Absolute orientation (tilt + heading) | BNO085 | 100 Hz | tilt correction of the light data |
+| 3-axis angular velocity and acceleration | LSM6DSO32 | 104 Hz (FIFO) | launch detection, 20 g peak, swing |
+| GPS position and altitude | ATGM336H | 1 Hz | location, drift/wind (GPS altitude ±10 m) |
+| Ground reference: spectral, UV, visible | AS7341 + LTR390 on the ground station | same as flight | separates sky changes from height changes |
+| Telemetry packet | SX1262 | 1 Hz | rule; UK 433 MHz band 10 mW ERP and (to confirm, IR 2030) ≤10 % duty cycle → keep packets ~30–50 bytes, latest values + 1 s means |
+
+Data volume: ~3 KB/s binary at full rate → ~2 MB per 10 min; tight on Pico 2 flash alongside CircuitPython, so full rate only after launch detection; microSD optional insurance.
 
 Why each measurement:
 - **Spectral intensity (most important):** how each wavelength band changes during descent → wavelength-dependent scattering and attenuation, relevant to aerosols, clouds and haze on other planets. Blue should be affected more than red (Rayleigh scattering).
@@ -56,35 +62,51 @@ Why each measurement:
 - **IMU:** movement and orientation, to account for sensor pointing during descent.
 - **GPS:** ties optical readings to location, altitude and flight conditions.
 
+**Measurement method ("package 2", chosen Nov 2026):** the effect we want is small – over a 400 m descent the blue/red ratio should change by only ~1–2 % (Rayleigh ~1 % in blue, haze ~2–6 %), while a 5° tilt towards the sun changes raw readings by ~±10 %. So:
+1. **Colour ratios** (e.g. blue/red) are the main result – tilt and clouds largely cancel.
+2. **Swing reduced at source:** spill hole, line length, swivel (see the `cansat_design` swing sweep).
+3. **Tilt correction:** BNO085 orientation + sun position (GPS time/location) → angle between sensor and sun; only nearly-level samples used where needed.
+4. **Direct/diffuse split per band:** block the sun with a small disc at the pad (diffuse only) before launch.
+5. **Bench calibration** of the sensor's angular (cosine) response with the PTFE diffuser.
+6. **Ground reference station:** identical AS7341 + LTR390 logging on the ground, time-aligned via telemetry packets.
+7. **Canopy shading:** canopy covers ~10° half-angle above the sensors (~3–6 % of diffuse light, orange tints it) – measure on the ground per band and correct; it cannot shadow the sun unless swing exceeds ~27° (April final, midday). Sensor window off-centre on the top cap; radio antenna on the bottom.
+Expected accuracy (estimates, to be confirmed by simulation): colour ratio ±0.3–0.6 %, raw intensity ±2–4 %. Package 3 (DIY sun sensor) rejected for now – small extra accuracy for a lot of work; possible later showcase.
+
+**Success criteria:**
+- Minimum: spectral, UV and orientation data logged for the whole descent at ≥1 Hz and telemetry received at 1 Hz.
+- Full: blue/red ratio vs height with uncertainty ≤ ±0.5 %, compared with a Rayleigh + haze prediction.
+- Extended: any of – direct/diffuse split from the swing ("swing scanner"), haze Ångström exponent, solar-heating correction of the SHT45, measured swing vs the `cansat_design` swing model, post-landing sky/UV readings.
+
 **What we do with the data:**
 1. Intensity per wavelength band at each height; plot vs height per band.
 2. Band ratios (e.g. blue/red) and UV/visible ratio vs height → wavelength-dependent attenuation.
 3. Explain changes with temperature/humidity layers.
-4. Correct or filter for tilt using the IMU (sensor cosine response).
+4. Correct for tilt (BNO085 + sun position + direct/diffuse split) and compare with the ground reference.
 5. Validate: pad and post-landing readings, Met Office radiosonde soundings, ERA5, CAMS aerosol forecasts.
 
 **How the missions link:** optical changes vs temperature/humidity layers from the primary-mission profile; humidity explains haze scattering; light sensors estimate solar heating error on the temperature sensor; one combined telemetry stream.
 
 **Known limitations (state in reports):** 20–40 s descent over a few hundred metres, so changes may be small and may not cross a layer boundary (a flat profile is still a valid result); parachute swing changes sensor pointing – reduced with IMU data, not removed; depends on weather and sun position; one flight demonstrates the method, not a definitive dataset.
 
-**Open points:** which way the AS7341 points (up = sky light, the default assumption); LTR390 measures UV and ambient light in separate modes, so firmware must alternate them (each reading has an integration time – check both fit in the 1 Hz cycle).
+**Open points:** AS7341 points up (assumed – confirm); LTR390 alternates UV/ALS modes in firmware; **firmware language: CircuitPython provisionally** (official Adafruit drivers for every sensor) – first confirm the `micropySX126X` radio driver works in CircuitPython on the Pico 2, otherwise MicroPython; the secondary-mission text above must be rewritten in our own words for reports (an older team's PDR uses very similar headings and phrasing).
 
 ## Hardware (solderless build, ~£151 flight + ~£20 ground station)
 - Raspberry Pi Pico 2 with headers (flight computer, MicroPython or CircuitPython)
 - Waveshare SX1262 433 MHz LoRa module for Pico (includes 600 mAh LiPo, charger, power switch = master switch). Note: SX1262, not SX127x – needs an SX126x driver.
 - Pimoroni Pico Omnibus (holds Pico + LoRa module, spare pins). 94 × 52 mm, mounts lengthwise.
-- 433 MHz IPEX spring antenna (≤30 mm external)
+- 433 MHz IPEX spring antenna (≤30 mm external) – mounted on the **bottom** so the top cap stays clear for the light sensors
 - 1× Adafruit AS7341 (STEMMA QT, 10 channels, 415 nm to NIR) – I2C address 0x39
 - Adafruit LTR390 UV + ambient light (STEMMA QT)
 - Adafruit SHT45 temperature + humidity (STEMMA QT) – primary air temperature sensor
 - Adafruit BMP388 pressure (STEMMA QT) – primary pressure sensor (BME280 considered as an alternative/backup)
-- Adafruit LSM6DSO32 IMU (6-DoF: accelerometer ±32 g + gyroscope, no magnetometer) – tilt/swing correction, launch/landing detection
+- Adafruit LSM6DSO32 IMU (6-DoF: accelerometer ±32 g + gyroscope, no magnetometer) – launch/landing detection, 20 g peak, swing
+- Adafruit BNO085 9-DoF orientation sensor with on-chip fusion (STEMMA QT, I2C 0x4A, ~£24) – absolute orientation for tilt correction; ±8 g only, so the LSM6DSO32 stays. I2C can be fiddly on some boards – UART-RVC mode is the fallback.
 - ATGM336H GPS (UART) – recovery and wind profile from drift
 - STEMMA QT cables + 2× STEMMA QT-to-female-socket leads; female jumpers for GPS
 - PTFE 1 mm diffuser over sensor windows (passes UV)
 - Data logged to Pico flash (full rate after launch detection); SD module optional
 - Orange ripstop nylon canopy, ball-bearing swivel, 3D-printed PETG shell, ballast to 300–350 g
-- Ground station: second Pico 2 + SX1262 module on a laptop over USB
+- Ground station: second Pico 2 + SX1262 module on a laptop over USB, plus the **ground reference** AS7341 + LTR390 (~£22, ground support equipment – excluded from the £400 budget, to confirm)
 - Secure every plug-in connector (hot glue/tape) for 20 g.
 
 ## Parachute design plan

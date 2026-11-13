@@ -42,6 +42,7 @@ def default_components() -> list[Component]:
         Component("Adafruit SHT45 temp + humidity", 1.0, (25, 18, 5), current_ma=0.1),
         Component("Adafruit BMP388 pressure", 1.2, (25, 18, 5), current_ma=0.7),
         Component("Adafruit LSM6DSO32 IMU", 1.5, (25, 18, 5), current_ma=0.6),
+        Component("Adafruit BNO085 9-DoF orientation", 2.0, (25, 18, 5), current_ma=12),
         Component("ATGM336H GPS + patch antenna", 8.0, (30, 25, 10), current_ma=25),
         Component("STEMMA QT cables + jumper leads", 1.5, (30, 10, 5), qty=7),
         Component("PTFE 1 mm diffusers", 0.5, None, qty=2),
