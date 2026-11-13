@@ -10,7 +10,8 @@ const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&l
 function fillDefaults(d) {
   $("shape").innerHTML = Object.entries(d.shapes)
     .map(([k, v]) => `<option value="${k}">${esc(v)}</option>`).join("");
-  for (const k of ["shape", "mass_g", "speed", "spill", "apogee", "opening_speed", "fabric_g_m2", "seam_mm", "line_factor", "density"]) {
+  for (const k of ["shape", "mass_g", "speed", "spill", "apogee", "opening_speed", "fabric_g_m2", "seam_mm", "line_factor", "density",
+                   "launch_time", "latitude", "longitude"]) {
     form.elements[k].value = d[k];
   }
   components = d.components;
@@ -18,6 +19,7 @@ function fillDefaults(d) {
     <tr><td>${esc(c.name)}</td>
     <td><input type="number" step="0.1" min="0" data-i="${i}" data-k="mass_g" value="${c.mass_g}" aria-label="${esc(c.name)} mass"></td>
     <td><input type="number" step="1" min="0" data-i="${i}" data-k="qty" value="${c.qty}" aria-label="${esc(c.name)} quantity"></td>
+    <td><input type="number" step="0.01" min="0" data-i="${i}" data-k="cost_gbp" value="${c.cost_gbp}" aria-label="${esc(c.name)} cost in pounds"></td>
     <td><input type="checkbox" data-i="${i}" data-k="estimate" ${c.estimate ? "checked" : ""} aria-label="${esc(c.name)} is an estimate"></td></tr>`).join("");
 }
 
@@ -50,6 +52,8 @@ function show(r) {
     ["Ballast", `${fmt(k.ballast_design_g, 0)} g`, `to ${fmt(k.flight_g, 0)} g (${fmt(k.ballast_min_g, 0)} g for 300 g)`],
     ["Descent time", `${fmt(k.descent_s)} s`, `${k.packets} packets at 1 Hz`],
     ["Opening shock", `${fmt(k.opening_n)} N`, "rated 50 N"],
+    ["Flight cost", `£${fmt(k.cost_gbp, 2)}`, `of £${fmt(k.budget_gbp, 0)} · ground £${fmt(k.ground_gbp, 2)} extra`, k.cost_gbp <= k.budget_gbp ? "PASS" : "FAIL"],
+    ...(k.sun_el > 5 ? [["Blue/red signal", `${fmt(Math.abs(k.ratio_signal_pct), 2)} %`, `level sensor · ${fmt(Math.abs(k.ratio_direct_pct))} % in direct sunlight (sun ${fmt(k.sun_el, 0)}° up)`]] : []),
   ].map(([t, v, s, st]) => `<div class="tile"><div class="t">${t}</div><div class="v">${v}</div><div class="s">${s}${st ? ` <span class="badge ${st}">${STATUS_ICON[st]} ${st}</span>` : ""}</div></div>`).join("");
 
   $("checks").innerHTML = r.checks.map((c) =>
@@ -67,6 +71,8 @@ function show(r) {
 
   const img = (key, alt) => r.images[key] ? `<img alt="${alt}" src="data:image/png;base64,${r.images[key]}">` : "";
   $("plot-descent").innerHTML = img("descent", "Altitude, speed and swing angle against time");
+  $("plot-mission").innerHTML = img("mission", "Expected dimming per wavelength band against the reading error from tilt");
+  $("mission-panel").hidden = !r.images.mission;
   $("plot-sweeps").innerHTML = img("speed_vs_area", "Descent speed against canopy area for each shape")
     + img("speed_vs_mass", "Descent speed against flight mass") + img("swing_vs_spill", "Swing settle time and canopy width against spill-hole size");
   $("sweep-panel").hidden = !r.images.speed_vs_area;

@@ -90,7 +90,7 @@ Expected accuracy (estimates, to be confirmed by simulation): colour ratio ±0.3
 
 **Open points:** AS7341 points up (assumed – confirm); LTR390 alternates UV/ALS modes in firmware; **firmware language: CircuitPython provisionally** (official Adafruit drivers for every sensor) – first confirm the `micropySX126X` radio driver works in CircuitPython on the Pico 2, otherwise MicroPython; the secondary-mission text above must be rewritten in our own words for reports (an older team's PDR uses very similar headings and phrasing).
 
-## Hardware (solderless build, ~£151 flight + ~£20 ground station)
+## Hardware (solderless build, £157.55 flight + £45.34 ground station – parts sheet, 13 Nov 2026)
 - Raspberry Pi Pico 2 with headers (flight computer, MicroPython or CircuitPython)
 - Waveshare SX1262 433 MHz LoRa module for Pico (includes 600 mAh LiPo, charger, power switch = master switch). Note: SX1262, not SX127x – needs an SX126x driver.
 - Pimoroni Pico Omnibus (holds Pico + LoRa module, spare pins). 94 × 52 mm, mounts lengthwise.
@@ -100,9 +100,9 @@ Expected accuracy (estimates, to be confirmed by simulation): colour ratio ±0.3
 - Adafruit SHT45 temperature + humidity (STEMMA QT) – primary air temperature sensor
 - Adafruit BMP388 pressure (STEMMA QT) – primary pressure sensor (BME280 considered as an alternative/backup)
 - Adafruit LSM6DSO32 IMU (6-DoF: accelerometer ±32 g + gyroscope, no magnetometer) – launch/landing detection, 20 g peak, swing
-- Adafruit BNO085 9-DoF orientation sensor with on-chip fusion (STEMMA QT, I2C 0x4A, ~£24) – absolute orientation for tilt correction; ±8 g only, so the LSM6DSO32 stays. I2C can be fiddly on some boards – UART-RVC mode is the fallback.
+- Adafruit BNO085 9-DoF orientation sensor with on-chip fusion (STEMMA QT, I2C 0x4A, £27 at Pi Hut – often sold out) – absolute orientation for tilt correction; ±8 g only, so the LSM6DSO32 stays. I2C can be fiddly on some boards – UART-RVC mode is the fallback.
 - ATGM336H GPS (UART) – recovery and wind profile from drift
-- STEMMA QT cables + 2× STEMMA QT-to-female-socket leads; female jumpers for GPS
+- STEMMA QT cables + 1× STEMMA QT-to-female-socket lead (one sensor chain); female jumpers for GPS
 - PTFE 1 mm diffuser over sensor windows (passes UV)
 - Data logged to Pico flash (full rate after launch detection); SD module optional
 - Orange ripstop nylon canopy, ball-bearing swivel, 3D-printed PETG shell, ballast to 300–350 g

@@ -6,6 +6,7 @@ CLI and return plain data (text, tables, PNGs as base64, SVG strings).
 
 import base64
 import json
+from datetime import datetime
 import os
 
 from cansat_design import parachute as P
@@ -23,13 +24,15 @@ def defaults_json() -> str:
     return json.dumps({
         "shapes": {k: v.label for k, v in P.SHAPES.items()},
         "components": [{"name": c.name, "mass_g": c.mass_g, "qty": c.qty, "estimate": c.estimate,
-                        "size_mm": c.size_mm, "current_ma": c.current_ma}
+                        "size_mm": c.size_mm, "current_ma": c.current_ma, "cost_gbp": c.cost_gbp}
                        for c in default_components()],
         "shape": cfg.parachute.shape, "mass_g": cfg.mass.design_mass_kg * 1000,
         "speed": cfg.mission.target_speed_m_s, "spill": cfg.parachute.spill_hole_pct,
         "apogee": cfg.mission.apogee_m, "opening_speed": cfg.parachute.opening_speed_m_s,
         "fabric_g_m2": cfg.parachute.fabric_g_m2, "seam_mm": cfg.parachute.seam_allowance_mm,
         "line_factor": cfg.parachute.line_length_factor, "density": cfg.air.density_kg_m3,
+        "launch_time": cfg.launch.time_utc.strftime("%Y-%m-%dT%H:%M"),
+        "latitude": cfg.launch.latitude_deg, "longitude": cfg.launch.longitude_deg,
     })
 
 
@@ -57,12 +60,19 @@ def run(params_json: str, with_sweeps: bool = True) -> str:
         cfg.air.temperature_c = float(p["temperature_c"])
         cfg.air.pressure_pa = float(p["pressure_hpa"]) * 100
     cfg.components = [Component(c["name"], float(c["mass_g"]), tuple(c["size_mm"]) if c["size_mm"] else None,
-                                float(c["current_ma"]), int(c["qty"]), bool(c["estimate"]))
+                                float(c["current_ma"]), int(c["qty"]), bool(c["estimate"]),
+                                float(c.get("cost_gbp") or 0))
                       for c in p["components"]]
+    if p.get("launch_time"):
+        cfg.launch.time_utc = datetime.fromisoformat(p["launch_time"])
+    cfg.launch.latitude_deg = float(p.get("latitude") or cfg.launch.latitude_deg)
+    cfg.launch.longitude_deg = float(p.get("longitude") or cfg.launch.longitude_deg)
 
     d = design(cfg)
     os.makedirs(OUT, exist_ok=True)
     images = {"descent": _png(plots.plot_descent(d, OUT))}
+    if (mp := plots.plot_mission(d, OUT)):
+        images["mission"] = _png(mp)
     if with_sweeps:
         sva, svm = sweeps.speed_vs_area(d), sweeps.speed_vs_mass(d)
         svs = sweeps.swing_vs_spill(d, spills_pct=range(0, 31, 5))   # coarser than the CLI, for speed
@@ -90,6 +100,9 @@ def run(params_json: str, with_sweeps: bool = True) -> str:
             "packets": d.packets, "opening_n": d.opening_n,
             "width_cm": d.canopy.width_m * 100, "area_m2": d.canopy.gross_area_m2,
             "hole_cm": d.canopy.hole_d_m * 100, "shape": P.SHAPES[pc.shape].label,
+            "cost_gbp": d.cost_flight_gbp, "budget_gbp": cfg.mass.budget_gbp, "ground_gbp": d.cost_ground_gbp,
+            "ratio_signal_pct": d.ratio_signal_pct, "ratio_direct_pct": d.ratio_direct_signal_pct,
+            "sun_el": d.sun_elevation_deg,
         },
         "images": images,
         "svgs": svg_files(d.canopy, pc),

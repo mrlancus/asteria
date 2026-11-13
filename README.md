@@ -35,6 +35,8 @@ Options: `--shape {flat_hexagon,flat_circle,cruciform,hemispherical}`, `--mass` 
 | `atmosphere.py` | Air density – fixed, from measured T and p, or ISA |
 | `mass.py` | Mass budget, ballast, volume check, battery life |
 | `parachute.py` | Sizing, geometry for each shape, fabric/parachute mass, terminal velocity, opening shock |
+| `optics.py` | Secondary mission: sun position, expected signal per AS7341 band (Rayleigh + haze), tilt error, canopy field of view |
+| `telemetry.py` | LoRa packet airtime and duty cycle, flash logging budget |
 | `descent.py` | ODE descent simulation and pendulum swing model |
 | `design.py` | Runs everything and does the rule checks |
 | `sweeps.py`, `plots.py` | Parameter sweeps and matplotlib figures |
@@ -46,6 +48,7 @@ Options: `--shape {flat_hexagon,flat_circle,cruciform,hemispherical}`, `--mass` 
 - `sweep_speed_vs_area.png` – descent speed vs canopy area for every shape
 - `sweep_speed_vs_mass.png` – descent speed vs flight mass for the chosen canopy
 - `sweep_swing_vs_spill.png` – swing settle time and required canopy width vs spill-hole size
+- `mission_signal_vs_tilt.png` – expected dimming per wavelength band vs the reading error from tilt
 - `*.csv` – the sweep data, for our own analysis
 - `canopy_pattern.svg` – full-size pattern for laser cutting (units are mm)
 - `canopy_A4_rRcC.svg` – the same pattern split into A4 pages with 10 mm overlap. **Print at 100 % / "actual size"** and check the 100 mm scale bar before cutting.
@@ -76,6 +79,12 @@ Pattern key: solid black = cut line (includes seam allowance), dashed blue = sti
 
 **Mass, volume and power.** Component masses, sizes and currents are estimates (marked `est.` in the summary). Volume check: every component's bounding box must fit the inner can (2 mm walls) in some orientation, and the total (plus ballast, steel 7.85 g/cm³) must be below 60 % of the inner volume – packing is never perfect. Battery life = 600 mAh × 80 % usable ÷ total average current; LoRa TX bursts are averaged at 1 Hz.
 
+**Cost.** Each component's `cost_gbp` is the line cost from the team parts sheet (whole packs), plus parachute materials. The parts sheet is the source of truth – update both. Ground station parts are costed separately and assumed to be outside the £400 (ground support equipment).
+
+**Secondary-mission signal (simple model – order of magnitude only).** Sun position from a low-precision almanac (~0.1°). Rayleigh optical depth from Hansen & Travis (1974), scaled by the fraction of the air column below each height (ISA). Haze: aerosol optical depth 0.15 at 550 nm, Ångström exponent 1.3, exponential with a 1 km scale height, 90 % of extinction scattered. A level sensor sees direct light e^(−τ·m) plus a share of the scattered light (half of Rayleigh, 75 % of aerosol), so much of what the direct beam loses comes back as diffuse light – the level-sensor signal is therefore several times smaller than the direct-beam signal. Ozone absorption is ignored (it matters below ~330 nm, so the UV row is rough). Tilt error assumes the worst case (tilted straight towards the sun) and a perfect cosine response. These are planning numbers for the PDR, not predictions: the haze amount and profile change day to day.
+
+**Radio and logging.** LoRa airtime uses the Semtech SX126x formula (explicit header, CRC on); the UK 433 MHz duty-cycle limit of 10 % is our reading of IR 2030 – confirm. The logging budget sums each planned stream (rate × bytes per sample including a 4-byte timestamp) against an estimated 2 MB of free flash.
+
 **Rules not computable here** (master switch, battery access, frequency in software, reusable recovery, nothing outside the can before release, £400 budget, 20 g launch load) are listed as MANUAL so they appear on the checklist.
 
 ### Referencing in reports
@@ -99,4 +108,4 @@ Publishing is automatic (`.github/workflows/deploy.yml`): every push runs the te
 
 To deploy by hand instead: `bash site/build.sh`, then `npx wrangler pages deploy dist --project-name asteria-cansat --branch main`.
 
-If you add a new `.py` file to `cansat_design/`, also add it to `PY_FILES` in `site/worker.js`.
+New `.py` files in `cansat_design/` are picked up by the website automatically (the build writes a file list).

@@ -6,4 +6,6 @@ rm -rf dist
 mkdir -p dist/cansat_design
 cp site/index.html site/style.css site/app.js site/worker.js site/web_api.py dist/
 cp cansat_design/*.py dist/cansat_design/
+# File list for the browser worker, so new modules are picked up automatically
+python3 -c "import json, pathlib; print(json.dumps(sorted(p.name for p in pathlib.Path('cansat_design').glob('*.py'))))" > dist/cansat_design/files.json
 echo "Built dist/"
