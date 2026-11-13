@@ -93,11 +93,10 @@ bash site/build.sh
 python3 -m http.server -d dist 8000      # then open http://localhost:8000
 ```
 
-**Live site: https://asteria-cansat.pages.dev** (Cloudflare Pages project `asteria-cansat`, uploaded directly – it does **not** update automatically when you push). To publish changes, with `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` set:
+**Live site: https://asteria-cansat.pages.dev** (Cloudflare Pages project `asteria-cansat`).
 
-```bash
-bash site/build.sh
-npx wrangler pages deploy dist --project-name asteria-cansat --branch main
-```
+Publishing is automatic (`.github/workflows/deploy.yml`): every push runs the tests, then deploys. A push to `main` updates the live site; a push to any other branch gets its own preview URL (printed at the end of the deploy step in the GitHub Actions log). If the tests fail, nothing is deployed. The workflow needs two repository secrets, `CLOUDFLARE_API_TOKEN` (a token with Cloudflare Pages: Edit) and `CLOUDFLARE_ACCOUNT_ID`, under Settings → Secrets and variables → Actions.
+
+To deploy by hand instead: `bash site/build.sh`, then `npx wrangler pages deploy dist --project-name asteria-cansat --branch main`.
 
 If you add a new `.py` file to `cansat_design/`, also add it to `PY_FILES` in `site/worker.js`.
