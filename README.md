@@ -93,4 +93,11 @@ bash site/build.sh
 python3 -m http.server -d dist 8000      # then open http://localhost:8000
 ```
 
-**Cloudflare Pages settings:** build command `bash site/build.sh`, build output directory `dist`, no framework preset. If you add a new `.py` file to `cansat_design/`, also add it to `PY_FILES` in `site/worker.js`.
+**Live site: https://asteria-cansat.pages.dev** (Cloudflare Pages project `asteria-cansat`, uploaded directly – it does **not** update automatically when you push). To publish changes, with `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` set:
+
+```bash
+bash site/build.sh
+npx wrangler pages deploy dist --project-name asteria-cansat --branch main
+```
+
+If you add a new `.py` file to `cansat_design/`, also add it to `PY_FILES` in `site/worker.js`.
