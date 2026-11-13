@@ -1,0 +1,77 @@
+"""Targeted tests of the physics and maths only. Run: python -m pytest"""
+
+import math
+
+import pytest
+
+from cansat_design import parachute as P
+from cansat_design.config import Config, Component
+from cansat_design.descent import simulate_descent
+from cansat_design.mass import ballast_needed, box_fits_in_cylinder, mass_budget
+
+
+def test_area_formula_round_trips_with_terminal_velocity():
+    m, rho, cd, v = 0.325, 1.225, 0.8, 12.0
+    area = P.required_area(m, rho, cd, v)
+    assert area == pytest.approx(0.0452, abs=1e-4)          # CLAUDE.md baseline
+    assert P.terminal_velocity(m, rho, cd * area) == pytest.approx(v)
+
+
+def test_sized_canopy_with_spill_hole_hits_target_speed():
+    pc = Config().parachute
+    for shape in P.SHAPES:
+        c = P.size_canopy(pc, 0.325, 1.225, 12.0, shape=shape, spill_pct=18)
+        cda = P.drag_area(c, P.SHAPES[shape].cd0, pc.vent_cd_loss)
+        assert P.terminal_velocity(0.325, 1.225, cda) == pytest.approx(12.0)
+        assert c.hole_area_m2 > 0
+
+
+def test_hexagon_geometry():
+    s = 0.13
+    area = 3 * math.sqrt(3) / 2 * s ** 2
+    assert P.hexagon_side(area) == pytest.approx(s)
+    c = P.canopy_geometry("flat_hexagon", area, 0)
+    assert c.dims["across flats"] == pytest.approx(math.sqrt(3) * s)
+    assert c.dims["across corners"] == pytest.approx(2 * s)
+    # The outline polygon really has that area (shoelace formula)
+    x, y = c.pieces[0][:, 0], c.pieces[0][:, 1]
+    shoelace = 0.5 * abs(sum(x[i] * y[i - 1] - x[i - 1] * y[i] for i in range(len(x))))
+    assert shoelace == pytest.approx(area)
+
+
+def test_hemisphere_gore_area_matches_surface():
+    # 8 flat gores should add up to (almost) the hemisphere's surface 2πr²
+    c = P.canopy_geometry("hemispherical", 0.05, 0, n_gores=8)
+    x, y = c.pieces[0][:, 0], c.pieces[0][:, 1]
+    gore = 0.5 * abs(sum(x[i] * y[i - 1] - x[i - 1] * y[i] for i in range(len(x))))
+    assert 8 * gore == pytest.approx(0.05, rel=0.03)
+
+
+def test_mass_and_ballast():
+    assert ballast_needed(250, 300) == 50
+    assert ballast_needed(320, 300) == 0
+    cfg = Config()
+    cfg.components = [Component("a", 100, None), Component("b", 20, None, qty=3)]
+    b = mass_budget(cfg, parachute_g=10)
+    assert b.components_g == 160
+    assert b.ballast_to_min_g == pytest.approx(130)       # 300 − 160 − 10
+    assert b.ballast_to_design_g == pytest.approx(155)    # 325 − 160 − 10
+    assert b.total_g == pytest.approx(325)
+
+
+def test_omnibus_fits_lengthwise_only():
+    assert box_fits_in_cylinder((94, 52, 15), 62, 111)
+    assert not box_fits_in_cylinder((94, 52, 15), 62, 90)
+
+
+def test_speed_range_check():
+    assert P.speed_in_range(10.0) and P.speed_in_range(15.0) and P.speed_in_range(12)
+    assert not P.speed_in_range(9.9)
+    assert not P.speed_in_range(15.1)
+
+
+def test_simulation_settles_to_terminal_velocity():
+    cda = P.required_drag_area(0.325, 1.225, 12.0)
+    r = simulate_descent(0.325, cda, lambda h: 1.225, h0_m=400, v0_m_s=20)
+    assert r.landing_speed_m_s == pytest.approx(12.0, rel=1e-3)
+    assert r.descent_time_s == pytest.approx(400 / 12, rel=0.05)
