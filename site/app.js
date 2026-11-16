@@ -2,7 +2,13 @@
 const $ = (id) => document.getElementById(id);
 const form = $("form");
 const worker = new Worker("worker.js");
-let components = [];
+let catalog, defaultRows, rows = [], lastResult = null, revision = 0, pendingRevision = 0, resultRevision = -1;
+let workerReady = false, calculating = false;
+let patternUrls = [];
+const STORAGE_KEY = "asteria-design-v1";
+let saved = {};
+try { saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}") || {}; } catch { saved = {}; }
+const safeSavedInputs = saved.inputs && typeof saved.inputs === "object" ? saved.inputs : {};
 
 const fmt = (x, d = 1) => Number(x).toFixed(d);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -14,26 +20,31 @@ function fillDefaults(d) {
                    "launch_time", "latitude", "longitude"]) {
     form.elements[k].value = d[k];
   }
-  components = d.components;
-  $("comps").innerHTML = components.map((c, i) => `
-    <tr><td>${esc(c.name)}</td>
-    <td><input type="number" step="0.1" min="0" data-i="${i}" data-k="mass_g" value="${c.mass_g}" aria-label="${esc(c.name)} mass"></td>
-    <td><input type="number" step="1" min="0" data-i="${i}" data-k="qty" value="${c.qty}" aria-label="${esc(c.name)} quantity"></td>
-    <td><input type="number" step="0.01" min="0" data-i="${i}" data-k="cost_gbp" value="${c.cost_gbp}" aria-label="${esc(c.name)} cost in pounds"></td>
-    <td><input type="checkbox" data-i="${i}" data-k="estimate" ${c.estimate ? "checked" : ""} aria-label="${esc(c.name)} is an estimate"></td></tr>`).join("");
+  for (const [key, value] of Object.entries(safeSavedInputs)) {
+    const el = form.elements.namedItem(key);
+    if (!el || el.tagName === "BUTTON") continue;
+    const initial = el.value;
+    el.value = String(value);
+    if (!el.checkValidity() || el.value === "") el.value = initial;
+  }
 }
 
 function params() {
   const p = Object.fromEntries(new FormData(form).entries());
-  for (const el of $("comps").querySelectorAll("input")) {
-    const c = components[el.dataset.i];
-    c[el.dataset.k] = el.type === "checkbox" ? el.checked : Number(el.value);
-  }
-  p.components = components;
+  const component = (r) => ({ ...r, cost_gbp: Parts.lineCost(r) });
+  p.components = rows.filter((r) => r.group === "Flight").map(component);
+  p.ground = rows.filter((r) => r.group === "Ground").map(component);
+  p.materials_cost_gbp = rows.filter((r) => r.group === "Materials").reduce((sum, r) => sum + Parts.lineCost(r), 0);
   return p;
 }
 
-function run() {
+async function run() {
+  if (!workerReady || calculating || !await partsReady) return;
+  if (!form.checkValidity()) { navigateTab("overview"); form.reportValidity(); return; }
+  if (!validParts()) return;
+  pendingRevision = revision;
+  calculating = true;
+  updateFreshness();
   $("run").disabled = true;
   $("run").textContent = "Calculating…";
   $("status").textContent = "";
@@ -64,7 +75,13 @@ function show(r) {
     `<tr class="${s.chosen ? "chosen" : ""}"><td>${esc(s.shape)}${s.chosen ? " ★" : ""}</td><td>${fmt(s.cd0, 2)}</td><td>${fmt(s.area_m2, 4)}</td>
      <td>${fmt(s.width_cm)}</td><td>${fmt(s.hole_cm)}</td><td>${fmt(s.mass_g)}</td><td class="dims">${esc(s.dims)}</td></tr>`).join("");
 
-  const svgUrl = (text) => URL.createObjectURL(new Blob([text], { type: "image/svg+xml" }));
+  patternUrls.forEach((url) => URL.revokeObjectURL(url));
+  patternUrls = [];
+  const svgUrl = (text) => {
+    const url = URL.createObjectURL(new Blob([text], { type: "image/svg+xml" }));
+    patternUrls.push(url);
+    return url;
+  };
   const names = Object.keys(r.svgs);
   $("pattern").innerHTML = `<img alt="Canopy cutting pattern" src="${svgUrl(r.svgs["canopy_pattern.svg"])}">`;
   $("downloads").innerHTML = names.map((n) =>
@@ -78,19 +95,206 @@ function show(r) {
     + img("speed_vs_mass", "Descent speed against flight mass") + img("swing_vs_spill", "Swing settle time and canopy width against spill-hole size");
   $("sweep-panel").hidden = !r.images.speed_vs_area;
   $("summary").textContent = r.summary;
+  $("streams").innerHTML = r.streams.map(([name, hz, bytes]) => `<tr><td>${esc(name)}</td><td>${hz}</td><td>${bytes}</td></tr>`).join("");
+  $("data-budget").textContent = r.data_budget;
+  $("mission-unavailable").hidden = !!r.images.mission;
+  lastResult = r;
+  resultRevision = pendingRevision;
+  $("export-version").textContent = "Calculated " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) +
+    (resultRevision !== revision ? " · Inputs have since changed." : " · Matches current inputs.");
 }
 
 worker.onmessage = (e) => {
   const m = e.data;
   if (m.type === "status") $("status").textContent = m.text;
-  if (m.type === "ready") { fillDefaults(m.defaults); run(); }
+  if (m.type === "ready") { fillDefaults(m.defaults); workerReady = true; run(); }
   if (m.type === "result") show(m.result);
   if (m.type === "error") $("status").textContent = "Error: " + m.text;
   if (m.type === "result" || m.type === "error") {
-    $("run").disabled = false;
+    calculating = false;
+    updateFreshness();
+    $("run").disabled = !workerReady;
     $("run").textContent = "Calculate";
     document.body.classList.remove("busy");
   }
 };
 
 form.addEventListener("submit", (e) => { e.preventDefault(); run(); });
+
+
+// Linkable tabs with browser history and keyboard navigation.
+const tabButtons = [...document.querySelectorAll("[data-tab]")];
+function selectTab(name, focus = false) {
+  if (!tabButtons.some((b) => b.dataset.tab === name)) name = "overview";
+  tabButtons.forEach((b) => {
+    const active = b.dataset.tab === name;
+    b.setAttribute("aria-selected", String(active));
+    b.tabIndex = active ? 0 : -1;
+    $("panel-" + b.dataset.tab).hidden = !active;
+    if (active && focus) b.focus();
+  });
+  const wide = name === "parts" || name === "exports";
+  $("workspace").classList.toggle("wide", wide);
+  form.hidden = wide;
+}
+function navigateTab(name, focus = false) {
+  if (location.hash !== "#" + name) history.pushState(null, "", "#" + name);
+  selectTab(name, focus);
+}
+tabButtons.forEach((button, i) => {
+  button.addEventListener("click", () => navigateTab(button.dataset.tab));
+  button.addEventListener("keydown", (event) => {
+    let next;
+    if (event.key === "ArrowRight") next = (i + 1) % tabButtons.length;
+    if (event.key === "ArrowLeft") next = (i + tabButtons.length - 1) % tabButtons.length;
+    if (event.key === "Home") next = 0;
+    if (event.key === "End") next = tabButtons.length - 1;
+    if (next !== undefined) { event.preventDefault(); navigateTab(tabButtons[next].dataset.tab, true); }
+  });
+});
+window.addEventListener("hashchange", () => selectTab(location.hash.slice(1)));
+window.addEventListener("popstate", () => selectTab(location.hash.slice(1)));
+selectTab(location.hash.slice(1));
+
+function updateFreshness() {
+  const stale = !!lastResult && resultRevision !== revision;
+  $("stale").hidden = !stale;
+  $("download-summary").disabled = !lastResult || stale || calculating;
+  $("downloads").hidden = !lastResult || stale || calculating;
+}
+function persist() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      inputs: workerReady ? Object.fromEntries(new FormData(form).entries()) : safeSavedInputs,
+      parts: Object.fromEntries(rows.map((r) => [r.id, { qty: r.qty, mass_g: r.mass_g, cost_gbp: r.cost_gbp, estimate: r.estimate }]))
+    }));
+  } catch { $("parts-status").textContent = "Browser storage is unavailable. Export your changes before leaving."; }
+}
+function changed() { revision++; updateFreshness(); persist(); }
+form.addEventListener("input", changed);
+
+function validParts() {
+  const invalid = [...$("parts-rows").querySelectorAll("input")].find((el) => !el.checkValidity());
+  if (invalid) {
+    $("parts-search").value = "";
+    $("parts-group").value = "all";
+    filterParts();
+    navigateTab("parts");
+    invalid.reportValidity();
+    return false;
+  }
+  return true;
+}
+function renderTotals() {
+  const t = Parts.totals(rows);
+  $("parts-totals").innerHTML = [
+    ["Flight + recovery", t.flight, "of £" + fmt(catalog.budget_gbp, 0) + " flight budget"],
+    ["Ground equipment", t.ground, "Separate from the flight budget"],
+    ["Total planned spend", t.total, "Planning allowance · excludes shipping"]
+  ].map(([label, value, detail]) => '<div class="tile"><div class="t">' + label + '</div><div class="v">£' + fmt(value, 2) + '</div><div class="s">' + detail + '</div></div>').join("");
+}
+function filterParts() {
+  const query = $("parts-search").value.trim().toLowerCase();
+  const group = $("parts-group").value;
+  let count = 0;
+  [...$("parts-rows").children].forEach((tr, i) => {
+    const r = rows[i];
+    const visible = (group === "all" || r.group === group) && (r.name + " " + r.note).toLowerCase().includes(query);
+    tr.hidden = !visible;
+    if (visible) count++;
+  });
+  $("parts-count").textContent = count + " of " + rows.length + " entries";
+}
+function renderParts() {
+  $("parts-rows").innerHTML = rows.map((r, i) => {
+    const input = (key, step, value) => '<input type="number" min="0" step="' + step + '" data-i="' + i + '" data-k="' + key + '" value="' + value + '" aria-label="' + esc(r.group + ' ' + r.name + ' ' + key) + '" required>';
+    return '<tr><td><strong>' + esc(r.name) + '</strong><div class="supplier-links">' +
+      r.links.map((l) => '<a href="' + esc(l.url) + '" target="_blank" rel="noopener noreferrer">' + esc(l.label) + ' ↗</a>').join("") +
+      '</div><p class="part-note">' + esc(r.note) + '</p></td><td><span class="group-tag">' + esc(r.group) + '</span></td>' +
+      '<td>' + (r.group === "Materials" ? "1 bundle" : input("qty", "1", r.qty)) + '</td>' +
+      '<td>' + (r.group === "Flight" ? input("mass_g", "0.1", r.mass_g) : "–") + '</td>' +
+      '<td>' + input("cost_gbp", "0.01", r.cost_gbp) + '</td><td>' +
+      (r.group === "Flight" ? '<input type="checkbox" data-i="' + i + '" data-k="estimate" ' + (r.estimate ? "checked" : "") + ' aria-label="' + esc(r.name) + ' mass estimated">' : "–") + '</td></tr>';
+  }).join("");
+  renderTotals(); filterParts();
+}
+$("parts-rows").addEventListener("input", (event) => {
+  const el = event.target;
+  if (!el.matches("input[data-i]")) return;
+  if (!el.checkValidity()) { revision++; updateFreshness(); return; }
+  rows[Number(el.dataset.i)][el.dataset.k] = el.type === "checkbox" ? el.checked : Number(el.value);
+  renderTotals(); changed();
+});
+$("parts-search").addEventListener("input", filterParts);
+$("parts-group").addEventListener("change", filterParts);
+$("reset-parts").addEventListener("click", () => {
+  if (!window.confirm("Restore the default parts quantities, masses and budgets?")) return;
+  rows = structuredClone(defaultRows); renderParts(); changed();
+});
+
+const partsReady = fetch("parts.json").then(async (response) => {
+  if (!response.ok) throw new Error("Could not load the parts catalogue.");
+  catalog = await response.json();
+  defaultRows = structuredClone(catalog.rows);
+  rows = structuredClone(defaultRows);
+  for (const r of rows) {
+    const edit = saved.parts?.[r.id];
+    if (!edit || typeof edit !== "object") continue;
+    for (const k of ["qty", "mass_g", "cost_gbp"]) {
+      if (typeof edit[k] === "number" && Number.isFinite(edit[k]) && edit[k] >= 0 &&
+          (k !== "qty" || Number.isInteger(edit[k])) && r[k] !== null && !(r.group === "Materials" && k === "qty")) r[k] = edit[k];
+    }
+    if (typeof edit.estimate === "boolean") r.estimate = edit.estimate;
+  }
+  $("price-note").textContent = catalog.price_note;
+  $("parts-status").textContent = "";
+  renderParts();
+  document.querySelectorAll("[data-export]").forEach((b) => b.disabled = false);
+  $("reset-parts").disabled = false;
+  return true;
+}).catch((error) => {
+  $("parts-status").textContent = error.message + " Reload the page to try again.";
+  $("status").textContent = "Parts data could not load. Reload to calculate.";
+  return false;
+});
+
+function download(text, type, filename) {
+  const url = URL.createObjectURL(new Blob([text], { type }));
+  const a = document.createElement("a");
+  a.href = url; a.download = filename; document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+document.querySelectorAll("[data-export]").forEach((button) => button.addEventListener("click", async () => {
+  if (!catalog || !validParts()) return;
+  const kind = button.dataset.export;
+  const filename = "asteria-parts-" + new Date().toISOString().slice(0, 10) + ".csv";
+  if (kind === "csv") {
+    download(Parts.csv(rows), "text/csv;charset=utf-8", filename);
+    $("export-status").textContent = "Exported all " + rows.length + " entries with supplier links.";
+  } else if (kind === "copy") {
+    try {
+      await navigator.clipboard.writeText(Parts.tsv(rows));
+      $("export-status").textContent = "Copied all parts. Paste into Excel or Google Sheets.";
+    } catch {
+      download(Parts.tsv(rows), "text/tab-separated-values;charset=utf-8", "asteria-parts.tsv");
+      $("export-status").textContent = "Clipboard unavailable; downloaded a spreadsheet-ready TSV instead.";
+    }
+  } else {
+    document.querySelector("#print-frame")?.remove();
+    const iframe = document.createElement("iframe");
+    iframe.id = "print-frame"; iframe.title = "Printable parts list"; iframe.className = "print-frame";
+    iframe.onload = () => { iframe.contentWindow.focus(); iframe.contentWindow.print(); };
+    iframe.srcdoc = Parts.printDocument(rows, catalog.price_note);
+    document.body.append(iframe);
+  }
+}));
+$("download-summary").addEventListener("click", () => {
+  if (lastResult && resultRevision === revision && !calculating) download(lastResult.summary, "text/plain;charset=utf-8", "asteria-design-summary.txt");
+});
+worker.onerror = () => {
+  calculating = false; workerReady = false;
+  document.body.classList.remove("busy");
+  $("run").disabled = true;
+  updateFreshness();
+  $("status").textContent = "The calculator could not start. Reload to retry; the parts list and its exports work independently.";
+};
