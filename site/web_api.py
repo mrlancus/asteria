@@ -63,6 +63,11 @@ def run(params_json: str, with_sweeps: bool = True) -> str:
                                 float(c["current_ma"]), int(c["qty"]), bool(c["estimate"]),
                                 float(c.get("cost_gbp") or 0))
                       for c in p["components"]]
+    if "ground" in p:
+        cfg.ground = [Component(c["name"], 0, qty=int(c["qty"]),
+                                cost_gbp=float(c["cost_gbp"])) for c in p["ground"]]
+    if "materials_cost_gbp" in p:
+        pc.materials_cost_gbp = float(p["materials_cost_gbp"])
     if p.get("launch_time"):
         cfg.launch.time_utc = datetime.fromisoformat(p["launch_time"])
     cfg.launch.latitude_deg = float(p.get("latitude") or cfg.launch.latitude_deg)
@@ -90,6 +95,11 @@ def run(params_json: str, with_sweeps: bool = True) -> str:
     b = d.budget
     return json.dumps({
         "summary": summary(d),
+        "streams": d.log.per_stream,
+        "data_budget": (f"Full-rate log: {d.log.bytes_per_s / 1000:.1f} KB/s; "
+                        f"4G uplink: {d.cell_kbps:.0f} kbps including overhead. "
+                        f"LoRa: {cfg.radio.payload_bytes} bytes/packet, {d.duty_cycle:.1%} duty cycle. "
+                        f"Flash buffer: {d.log.minutes_available:.1f} minutes."),
         "checks": [{"rule": c.rule, "value": c.value, "status": c.status} for c in d.checks],
         "shapes": shapes,
         "key": {

@@ -93,6 +93,29 @@ This package was written with an AI tool (Claude Code, Anthropic, November 2026)
 
 ### Website
 
+The website has five linkable tabs: **Overview**, **Parts list**, **Parachute**,
+**Mission** and **Exports** (for example, `#parts`). Tabs support arrow keys,
+Home/End and browser history.
+
+The parts list includes flight hardware, ground equipment and parachute materials.
+Supplier metadata is in `cansat_design/sourcing.py`: identified boards have direct
+Pi Hut/Pimoroni links; Amazon links are explicitly searches. Confirm variants and
+stock before purchasing. Prices are editable planning allowances, not live quotes.
+Costs are whole-line/pack budgets, so quantity changes do not multiply the cost.
+Update the budget separately. Quantity zero excludes the line's cost.
+
+Edits are saved in this browser, not synced to other team members or the repository.
+Share the complete list using CSV, spreadsheet copy or Print / PDF, including supplier
+URLs. Filters never limit exports. Restore default parts resets the parts edits.
+Stale calculation results are labelled and design downloads disabled until recalculated.
+Exports also contains the text report and full-size/A4 SVG patterns.
+
+Build on any platform with `python site/build.py` (the shell script wraps this).
+The generated `parts.json` uses only the standard library, so parts and purchasing
+exports work while the Python calculator loads. Export checks:
+`node --test tests/test_parts.cjs`.
+
+
 `site/` is a static web page that runs the same `cansat_design` Python code in the browser (Pyodide – Python compiled to WebAssembly, loaded from the jsDelivr CDN). No server, no separate JavaScript copy of the maths: change the Python, push, and the website uses the new code. The first visit takes ~10–20 s while numpy, scipy and matplotlib download; after that each calculation takes about a second.
 
 Try it locally:
