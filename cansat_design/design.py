@@ -169,12 +169,14 @@ def rule_checks(d: Design) -> list[Check]:
     checks.append(Check(f"Radio duty cycle ≤ {r.max_duty_cycle:.0%} (433 MHz band)",
                         f"{d.duty_cycle:.1%} ({d.airtime_s * 1000:.0f} ms per {r.payload_bytes}-byte packet, "
                         f"SF{r.spreading_factor})", _pf(d.duty_cycle <= r.max_duty_cycle)))
+    checks.append(Check(f"All science sent live: packet ≤ {r.max_payload_bytes} B",
+                        f"{r.payload_bytes} bytes, {r.payload_bytes * r.packets_per_s:.0f} B/s live "
+                        f"({len(r.packet)} fields)", _pf(r.payload_bytes <= r.max_payload_bytes)))
     need = cfg.logging.full_rate_minutes_needed
-    checks.append(Check(f"Flash holds ≥ {need:.0f} min of full-rate logging",
+    checks.append(Check(f"Flash backup holds ≥ {need:.0f} min of full-rate log",
                         f"{d.log.minutes_available:.1f} min at {d.log.bytes_per_s / 1000:.1f} KB/s "
                         f"({cfg.logging.free_flash_mb:.1f} MB free, estimate)",
-                        "PASS" if d.log.minutes_available >= 1.2 * need else
-                        ("WARN" if d.log.minutes_available >= need else "FAIL")))
+                        "PASS" if d.log.minutes_available >= need else "WARN"))   # bonus copy only
     if d.bands:
         best = min(d.ratio_noise_pct)
         snr = abs(d.ratio_signal_pct) / d.ratio_noise_pct[best]

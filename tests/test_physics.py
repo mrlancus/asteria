@@ -95,3 +95,10 @@ def test_rayleigh_optical_depth():
     from cansat_design.optics import rayleigh_tau
     assert rayleigh_tau(550) == pytest.approx(0.097, abs=0.002)
     assert rayleigh_tau(450) / rayleigh_tau(680) == pytest.approx((680 / 450) ** 4, rel=0.1)  # ~λ⁻⁴
+
+
+def test_live_packet_fits_duty_cycle():
+    from cansat_design.telemetry import lora_airtime_s
+    r = Config().radio
+    assert r.payload_bytes == sum(n * b for _, n, b in r.packet) <= r.max_payload_bytes
+    assert lora_airtime_s(r.payload_bytes, r.spreading_factor, r.bandwidth_hz) * r.packets_per_s <= r.max_duty_cycle

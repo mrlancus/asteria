@@ -154,14 +154,33 @@ class Optics:
 
 @dataclass
 class Radio:
-    """LoRa settings for the airtime / duty-cycle check (Semtech airtime formula)."""
+    """LoRa downlink. The CanSat is assumed NOT recoverable, so every science quantity is sent live,
+    downsampled on board; the flash log is only a bonus copy. Airtime from the Semtech formula."""
     spreading_factor: int = 7
-    bandwidth_hz: float = 125e3
+    bandwidth_hz: float = 500e3          # wider band = shorter airtime (range is still km at 10 mW)
     coding_rate: int = 1                 # 1 = 4/5 … 4 = 4/8
     preamble_symbols: int = 8
-    payload_bytes: int = 40
     packets_per_s: float = 1.0
     max_duty_cycle: float = 0.10         # UK 433 MHz band (IR 2030) – confirm
+    max_payload_bytes: int = 255         # SX1262 limit
+    # Packet contents: (field, samples per packet, bytes per sample)
+    packet: tuple = (
+        ("Header: ID, sequence, time", 1, 7),
+        ("Pressure (BMP388)", 5, 3),
+        ("Temperature (SHT45)", 5, 2),
+        ("Humidity (SHT45)", 1, 2),
+        ("Spectral, 10 channels (AS7341)", 5, 20),
+        ("Tilt + angle to sun per spectral sample", 5, 4),
+        ("Orientation quaternion (BNO085)", 1, 8),
+        ("UV + visible (LTR390)", 2, 4),
+        ("GPS lat, lon, altitude", 1, 10),
+        ("Swing/accel summary (LSM6DSO32)", 1, 4),
+        ("Battery + status flags", 1, 2),
+    )
+
+    @property
+    def payload_bytes(self) -> int:
+        return sum(n * b for _, n, b in self.packet)
 
 
 @dataclass

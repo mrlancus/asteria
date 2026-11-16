@@ -106,9 +106,13 @@ def summary(d) -> str:
         f"of diffuse sky light; shades the sun only if swing > {cv.sun_block_swing_deg:.0f}° towards it")
 
     lb, rc = d.log, cfg.radio
-    add(f"\nDATA AND RADIO")
+    add("\nDATA AND RADIO")
     add(f"  Telemetry: {rc.payload_bytes}-byte packet, SF{rc.spreading_factor}/{rc.bandwidth_hz / 1000:.0f} kHz → "
         f"{d.airtime_s * 1000:.0f} ms on air, duty cycle {d.duty_cycle:.1%} (limit {rc.max_duty_cycle:.0%})")
+    add(f"  Live packet (CanSat assumed not recovered – all science sent down, downsampled on board):")
+    for name, n, b in rc.packet:
+        add(f"    {name:<42} {n:>2} × {b:>2} B = {n * b:>3} B")
+    add(f"    {'Total':<42} {rc.payload_bytes:>12} B per packet")
     add(f"  Flash log at full rate: {lb.bytes_per_s / 1000:.1f} KB/s → {lb.minutes_available:.1f} min in "
         f"{cfg.logging.free_flash_mb:.1f} MB; biggest: "
         + ", ".join(f"{n} {b / 1000:.1f} KB/s" for n, _, b in sorted(lb.per_stream, key=lambda x: -x[2])[:2]))

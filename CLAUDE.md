@@ -51,9 +51,9 @@ Quantities and planned rates. The competition minimum is 1 Hz; we **log faster t
 | 3-axis angular velocity and acceleration | LSM6DSO32 | 104 Hz (FIFO) | launch detection, 20 g peak, swing |
 | GPS position and altitude | ATGM336H | 1 Hz | location, drift/wind (GPS altitude ±10 m) |
 | Ground reference: spectral, UV, visible | AS7341 + LTR390 on the ground station | same as flight | separates sky changes from height changes |
-| Telemetry packet | SX1262 | 1 Hz | rule; UK 433 MHz band 10 mW ERP and (to confirm, IR 2030) ≤10 % duty cycle → keep packets ~30–50 bytes, latest values + 1 s means |
+| Telemetry packet | SX1262 | 1 Hz | rule; UK 433 MHz band 10 mW ERP and (to confirm, IR 2030) ≤10 % duty cycle. **Assume the CanSat is not recovered:** every science quantity goes down live in a ~186-byte packet at SF7/500 kHz (~74 ms, ~7 % duty) – pressure, temperature and 10-channel spectral at 5 Hz, tilt + sun angle per spectral sample, humidity, UV/visible, orientation, GPS, status. No 4G (power spikes, antenna length, coverage). |
 
-Data volume: ~3 KB/s binary at full rate → ~2 MB per 10 min; tight on Pico 2 flash alongside CircuitPython, so full rate only after launch detection; microSD optional insurance.
+Data volume: the live packet is the primary science copy. Flash (bonus copy): ~3 KB/s binary at full rate → ~2 MB per 10 min; tight on Pico 2 flash alongside CircuitPython, so full rate only after launch detection; microSD optional insurance.
 
 Why each measurement:
 - **Spectral intensity (most important):** how each wavelength band changes during descent → wavelength-dependent scattering and attenuation, relevant to aerosols, clouds and haze on other planets. Blue should be affected more than red (Rayleigh scattering).
