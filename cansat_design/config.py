@@ -52,6 +52,11 @@ def default_components() -> list[Component]:
         Component("PTFE 1 mm diffusers", 0.5, None, qty=2, cost_gbp=4.75),
         Component("3D-printed PETG shell + bulkheads", 60.0, None),                          # school printer
         Component("Fasteners, hot glue, tape", 10.0, (20, 20, 10)),
+        # 4G bulk link (Nov 2026) – prices are estimates until added to the parts sheet
+        Component("SIMCom A7670E LTE Cat-1 4G module", 10.0, (40, 30, 8), current_ma=30, cost_gbp=25.00),  # mostly idle on the pad; ~1 A TX bursts
+        Component("LTE FPC antenna (inside the shell wall)", 2.0, None, cost_gbp=4.00),
+        Component("1000 µF capacitor (4G supply)", 2.0, (13, 10, 10), cost_gbp=1.00),
+        Component("Pay-as-you-go SIM + data bundle", 0.5, None, cost_gbp=10.00),
     ]
 
 
@@ -154,8 +159,8 @@ class Optics:
 
 @dataclass
 class Radio:
-    """LoRa downlink. The CanSat is assumed NOT recoverable, so every science quantity is sent live,
-    downsampled on board; the flash log is only a bonus copy. Airtime from the Semtech formula."""
+    """LoRa downlink: the compulsory 1 Hz T/P plus a downsampled copy of all the science, as the
+    backup if the 4G link drops. Airtime from the Semtech formula."""
     spreading_factor: int = 7
     bandwidth_hz: float = 500e3          # wider band = shorter airtime (range is still km at 10 mW)
     coding_rate: int = 1                 # 1 = 4/5 … 4 = 4/8
@@ -181,6 +186,18 @@ class Radio:
     @property
     def payload_bytes(self) -> int:
         return sum(n * b for _, n, b in self.packet)
+
+
+@dataclass
+class Cellular:
+    """4G bulk link (A7670E, LTE Cat-1, 2G fallback off): sends the full-rate log live.
+    The CanSat is assumed NOT recoverable – the flash log is only a buffer for resending."""
+    uplink_kbps: float = 100.0          # conservative usable uplink at weak signal (Cat-1 peak ~5 Mbps)
+    overhead: float = 1.3               # UDP/IP + our headers + resends
+    peak_current_a: float = 1.0         # TX bursts – confirm on the datasheet / measure
+    battery_peak_a: float = 1.2         # what the 600 mAh LiPo can supply (~2C) – confirm
+    active_minutes: float = 15.0        # sending at full rate: countdown, flight, after landing
+    bundle_mb: float = 1000.0           # pay-as-you-go data bundle
 
 
 @dataclass
@@ -212,4 +229,5 @@ class Config:
     launch: Launch = field(default_factory=Launch)
     optics: Optics = field(default_factory=Optics)
     radio: Radio = field(default_factory=Radio)
+    cellular: Cellular = field(default_factory=Cellular)
     logging: Logging = field(default_factory=Logging)

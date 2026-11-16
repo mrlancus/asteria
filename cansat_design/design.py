@@ -52,6 +52,8 @@ class Design:
     airtime_s: float = 0.0
     duty_cycle: float = 0.0
     log: object = None
+    cell_kbps: float = 0.0           # 4G uplink needed for the full-rate log
+    cell_mb: float = 0.0             # 4G data per flight
 
 
 def design(cfg) -> Design:
@@ -120,6 +122,9 @@ def mission_extras(d: Design) -> None:
                                    r.preamble_symbols)
     d.duty_cycle = d.airtime_s * r.packets_per_s
     d.log = T.log_budget(cfg.logging)
+    cc = cfg.cellular
+    d.cell_kbps = d.log.bytes_per_s * 8 * cc.overhead / 1000
+    d.cell_mb = d.log.bytes_per_s * cc.overhead * cc.active_minutes * 60 / 1e6
 
 
 def _pf(ok: bool) -> str:
@@ -173,6 +178,15 @@ def rule_checks(d: Design) -> list[Check]:
                         f"{r.payload_bytes} bytes, {r.payload_bytes * r.packets_per_s:.0f} B/s live "
                         f"({len(r.packet)} fields)", _pf(r.payload_bytes <= r.max_payload_bytes)))
     need = cfg.logging.full_rate_minutes_needed
+    cc = cfg.cellular
+    margin = cc.uplink_kbps / d.cell_kbps
+    checks.append(Check("4G uplink carries the full-rate data live",
+                        f"needs {d.cell_kbps:.0f} kbps of ~{cc.uplink_kbps:.0f} usable (×{margin:.0f}); "
+                        f"{d.cell_mb:.1f} MB per flight", "PASS" if margin >= 3 else ("WARN" if margin >= 1 else "FAIL")))
+    pk = cc.battery_peak_a / cc.peak_current_a
+    checks.append(Check("4G transmit bursts within battery peak current",
+                        f"~{cc.peak_current_a:.1f} A bursts vs ~{cc.battery_peak_a:.1f} A (×{pk:.1f}) – 1000 µF cap, "
+                        "brown-out test", "PASS" if pk >= 1.5 else ("WARN" if pk >= 1 else "FAIL")))
     checks.append(Check(f"Flash backup holds ≥ {need:.0f} min of full-rate log",
                         f"{d.log.minutes_available:.1f} min at {d.log.bytes_per_s / 1000:.1f} KB/s "
                         f"({cfg.logging.free_flash_mb:.1f} MB free, estimate)",

@@ -103,6 +103,7 @@ def run(params_json: str, with_sweeps: bool = True) -> str:
             "cost_gbp": d.cost_flight_gbp, "budget_gbp": cfg.mass.budget_gbp, "ground_gbp": d.cost_ground_gbp,
             "ratio_signal_pct": d.ratio_signal_pct, "ratio_direct_pct": d.ratio_direct_signal_pct,
             "sun_el": d.sun_elevation_deg,
+            "cell_kbps": d.cell_kbps, "cell_mb": d.cell_mb, "uplink_kbps": d.cfg.cellular.uplink_kbps,
         },
         "images": images,
         "svgs": svg_files(d.canopy, pc),

@@ -109,7 +109,11 @@ def summary(d) -> str:
     add("\nDATA AND RADIO")
     add(f"  Telemetry: {rc.payload_bytes}-byte packet, SF{rc.spreading_factor}/{rc.bandwidth_hz / 1000:.0f} kHz → "
         f"{d.airtime_s * 1000:.0f} ms on air, duty cycle {d.duty_cycle:.1%} (limit {rc.max_duty_cycle:.0%})")
-    add(f"  Live packet (CanSat assumed not recovered – all science sent down, downsampled on board):")
+    cc = cfg.cellular
+    add(f"  4G (A7670E Cat-1): full-rate log live, {d.log.bytes_per_s / 1000:.1f} KB/s → {d.cell_kbps:.0f} kbps with "
+        f"overhead, {d.cell_mb:.1f} MB per {cc.active_minutes:.0f} min (bundle {cc.bundle_mb:.0f} MB); "
+        "CanSat assumed not recovered")
+    add(f"  LoRa backup packet (compulsory 1 Hz T/P + downsampled science, if 4G drops):")
     for name, n, b in rc.packet:
         add(f"    {name:<42} {n:>2} × {b:>2} B = {n * b:>3} B")
     add(f"    {'Total':<42} {rc.payload_bytes:>12} B per packet")

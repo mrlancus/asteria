@@ -53,6 +53,7 @@ function show(r) {
     ["Descent time", `${fmt(k.descent_s)} s`, `${k.packets} packets at 1 Hz`],
     ["Opening shock", `${fmt(k.opening_n)} N`, "rated 50 N"],
     ["Flight cost", `£${fmt(k.cost_gbp, 2)}`, `of £${fmt(k.budget_gbp, 0)} · ground £${fmt(k.ground_gbp, 2)} extra`, k.cost_gbp <= k.budget_gbp ? "PASS" : "FAIL"],
+    ["4G link", `${fmt(k.cell_kbps, 0)} kbps`, `full-rate data live of ~${fmt(k.uplink_kbps, 0)} usable · ${fmt(k.cell_mb)} MB per flight`],
     ...(k.sun_el > 5 ? [["Blue/red signal", `${fmt(Math.abs(k.ratio_signal_pct), 2)} %`, `level sensor · ${fmt(Math.abs(k.ratio_direct_pct))} % in direct sunlight (sun ${fmt(k.sun_el, 0)}° up)`]] : []),
   ].map(([t, v, s, st]) => `<div class="tile"><div class="t">${t}</div><div class="v">${v}</div><div class="s">${s}${st ? ` <span class="badge ${st}">${STATUS_ICON[st]} ${st}</span>` : ""}</div></div>`).join("");
 
