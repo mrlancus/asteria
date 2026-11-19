@@ -91,7 +91,7 @@ Expected accuracy (estimates, to be confirmed by simulation): colour ratio ±0.3
 
 **Open points:** AS7341 points up (assumed – confirm); LTR390 alternates UV/ALS modes in firmware; **firmware language: CircuitPython provisionally** (official Adafruit drivers for every sensor) – first confirm the `micropySX126X` radio driver works in CircuitPython on the Pico 2, otherwise MicroPython; the secondary-mission text above must be rewritten in our own words for reports (an older team's PDR uses very similar headings and phrasing).
 
-## Hardware (solderless build, ~£197.55 flight incl. 4G estimates + £45.34 ground station – parts sheet, Nov 2026)
+## Hardware (solderless build, £219.13 flight incl. 4G and fast shipping + £45.34 ground station – parts sheet, 19 Nov 2026)
 - Raspberry Pi Pico 2 with headers (flight computer, MicroPython or CircuitPython)
 - Waveshare SX1262 433 MHz LoRa module for Pico (includes 600 mAh LiPo, charger, power switch = master switch). Note: SX1262, not SX127x – needs an SX126x driver.
 - Pimoroni Pico Omnibus (holds Pico + LoRa module, spare pins). 94 × 52 mm, mounts lengthwise.
@@ -105,7 +105,7 @@ Expected accuracy (estimates, to be confirmed by simulation): colour ratio ±0.3
 - ATGM336H GPS (UART) – recovery and wind profile from drift
 - STEMMA QT cables + 1× STEMMA QT-to-female-socket lead (one sensor chain); female jumpers for GPS
 - PTFE 1 mm diffuser over sensor windows (passes UV)
-- **4G bulk link (Nov 2026): SIMCom A7670E LTE Cat-1 module** (UART, power-key pin; 2G fallback turned off) – normal 4G network, so a cheap **pay-as-you-go SIM** for the CanSat works (not a student's own SIM; disable the PIN, set the APN). ~1 A transmit bursts → **1000 µF capacitor** on its supply and a brown-out test with the Pico; the 600 mAh LiPo's peak current must be confirmed. **Flexible FPC LTE antenna inside the PETG shell wall** (the 30 mm rule covers external antennas only). Check coverage at the launch site and that the organisers accept a cellular module. Its own UART – the GPS takes the other one; check pins against the LoRa board. SIM7080G (LTE-M) rejected: phone/PAYG SIMs usually can't use LTE-M.
+- **4G bulk link (Nov 2026): Waveshare A7670E LTE Cat-1 HAT** (65 × 30.5 mm, wired to the Pico with jumpers; Pi Hut sold out 19 Nov) (UART, power-key pin; 2G fallback turned off) – normal 4G network, so a cheap **pay-as-you-go SIM** for the CanSat works (not a student's own SIM; disable the PIN, set the APN). ~1 A transmit bursts → **1000 µF capacitor** on its supply and a brown-out test with the Pico; the 600 mAh LiPo's peak current must be confirmed. **Flexible FPC LTE antenna inside the PETG shell wall** (the 30 mm rule covers external antennas only). Check coverage at the launch site and that the organisers accept a cellular module. Its own UART – the GPS takes the other one; check pins against the LoRa board. SIM7080G (LTE-M) rejected: phone/PAYG SIMs usually can't use LTE-M.
 - Data logged to Pico flash (full rate after launch detection) as the 4G send buffer; SD module optional
 - Orange ripstop nylon canopy, ball-bearing swivel, 3D-printed PETG shell, ballast to 300–350 g
 - Ground station: second Pico 2 + SX1262 module on a laptop over USB, plus the **ground reference** AS7341 + LTR390 (~£22, ground support equipment – excluded from the £400 budget, to confirm)

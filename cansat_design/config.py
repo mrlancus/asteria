@@ -52,11 +52,12 @@ def default_components() -> list[Component]:
         Component("PTFE 1 mm diffusers", 0.5, None, qty=2, cost_gbp=4.75),
         Component("3D-printed PETG shell + bulkheads", 60.0, None),                          # school printer
         Component("Fasteners, hot glue, tape", 10.0, (20, 20, 10)),
-        # 4G bulk link (Nov 2026) – prices are estimates until added to the parts sheet
-        Component("SIMCom A7670E LTE Cat-1 4G module", 10.0, (40, 30, 8), current_ma=30, cost_gbp=25.00),  # mostly idle on the pad; ~1 A TX bursts
-        Component("LTE FPC antenna (inside the shell wall)", 2.0, None, cost_gbp=4.00),
-        Component("1000 µF capacitor (4G supply)", 2.0, (13, 10, 10), cost_gbp=1.00),
-        Component("Pay-as-you-go SIM + data bundle", 0.5, None, cost_gbp=10.00),
+        # 4G bulk link – parts sheet 19 Nov 2026 (antenna and capacitor prices are estimates)
+        Component("Waveshare A7670E LTE Cat-1 HAT (4G)", 20.0, (65, 31, 10), current_ma=30, cost_gbp=27.60),  # mostly idle on the pad; ~1 A TX bursts
+        Component("SparkFun LTE FPC antenna (inside the shell wall)", 2.0, None, cost_gbp=5.00),
+        Component("1000 µF capacitor (4G supply)", 2.0, (16, 10, 10), cost_gbp=3.00),
+        Component("giffgaff PAYG SIM + 2 GB bundle", 0.5, None, cost_gbp=6.00),
+        Component("Fast UK shipping (Pi Hut DHL, Amazon, Proto-Pic)", 0.0, None, cost_gbp=19.98, estimate=False),
     ]
 
 
