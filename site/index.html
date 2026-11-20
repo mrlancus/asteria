@@ -1,44 +1,31 @@
 <!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Asteria Parachute Calculator</title>
-  <meta name="description" content="UK CanSat 2026–27 parachute and design calculator – runs our cansat_design Python package in the browser.">
-  <link rel="stylesheet" href="style.css">
-</head>
-<body>
-  <header class="top">
-    <div class="wrap">
-      <h1>Asteria parachute calculator</h1>
-      <p class="sub">UK CanSat 2026–27 · sizes the parachute, builds the mass budget, simulates the descent and checks the rules. Runs our <code>cansat_design</code> Python code in your browser.</p>
-    </div>
-  </header>
-
-  <main class="wrap layout">
-    <form id="form" class="panel inputs" autocomplete="off">
-      <h2>Inputs</h2>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Asteria · CanSat design desk</title><meta name="description" content="Asteria CanSat design calculator, parts list and exports."><link rel="stylesheet" href="style.css"></head>
+<body><header class="top"><div class="wrap header-row"><div><p class="eyebrow">UK CANSAT 2026–27</p><h1>Asteria <span>design desk</span></h1><p class="sub">Plan the build. Compare the parachutes. Prepare for flight.</p></div><span class="project-badge">Atmospheric optics mission</span></div></header>
+<main class="wrap"><div class="tabs" role="tablist" aria-label="Design sections"><button id="tab-overview" type="button" role="tab" aria-controls="panel-overview" aria-selected="true" tabindex="0" data-tab="overview">Overview</button><button id="tab-parts" type="button" role="tab" aria-controls="panel-parts" aria-selected="false" tabindex="-1" data-tab="parts">Parts list</button><button id="tab-parachute" type="button" role="tab" aria-controls="panel-parachute" aria-selected="false" tabindex="-1" data-tab="parachute">Parachute</button><button id="tab-mission" type="button" role="tab" aria-controls="panel-mission" aria-selected="false" tabindex="-1" data-tab="mission">Mission</button><button id="tab-exports" type="button" role="tab" aria-controls="panel-exports" aria-selected="false" tabindex="-1" data-tab="exports">Exports</button></div>
+<div id="workspace" class="layout">    <form id="form" class="panel inputs" autocomplete="off">
+      <h2>Design inputs</h2>
       <label>Parachute shape <select name="shape" id="shape"></select></label>
       <div class="grid2">
-        <label>Flight mass (g) <input name="mass_g" type="number" step="1" min="200" max="500"></label>
-        <label>Target speed (m/s) <input name="speed" type="number" step="0.5" min="5" max="25"></label>
-        <label>Spill hole (% width) <input name="spill" type="number" step="1" min="0" max="45"></label>
-        <label>Apogee (m) <input name="apogee" type="number" step="10" min="10" max="3000"></label>
+        <label>Flight mass (g) <input name="mass_g" type="number" step="1" min="200" max="500" required></label>
+        <label>Target speed (m/s) <input name="speed" type="number" step="0.5" min="5" max="25" required></label>
+        <label>Spill hole (% width) <input name="spill" type="number" step="1" min="0" max="45" required></label>
+        <label>Apogee (m) <input name="apogee" type="number" step="10" min="10" max="3000" required></label>
       </div>
       <details>
         <summary>More parachute settings</summary>
         <div class="grid2">
           <label>Cd override <input name="cd" type="number" step="0.01" min="0.1" max="3" placeholder="shape default"></label>
-          <label>Opening speed (m/s) <input name="opening_speed" type="number" step="1" min="0" max="80"></label>
-          <label>Fabric (g/m²) <input name="fabric_g_m2" type="number" step="1" min="5" max="200"></label>
-          <label>Seam allowance (mm) <input name="seam_mm" type="number" step="1" min="0" max="30"></label>
-          <label>Line length (× width) <input name="line_factor" type="number" step="0.05" min="0.5" max="3"></label>
+          <label>Opening speed (m/s) <input name="opening_speed" type="number" step="1" min="0" max="80" required></label>
+          <label>Fabric (g/m²) <input name="fabric_g_m2" type="number" step="1" min="5" max="200" required></label>
+          <label>Seam allowance (mm) <input name="seam_mm" type="number" step="1" min="0" max="30" required></label>
+          <label>Line length (× width) <input name="line_factor" type="number" step="0.05" min="0.5" max="3" required></label>
         </div>
       </details>
       <details>
         <summary>Air</summary>
         <div class="grid2">
-          <label>Density (kg/m³) <input name="density" type="number" step="0.001" min="0.5" max="1.5"></label>
+          <label>Density (kg/m³) <input name="density" type="number" step="0.001" min="0.5" max="1.5" required></label>
           <span></span>
           <label>Temperature (°C) <input name="temperature_c" type="number" step="0.1" placeholder="optional"></label>
           <label>Pressure (hPa) <input name="pressure_hpa" type="number" step="0.1" placeholder="optional"></label>
@@ -47,76 +34,41 @@
       </details>
       <details>
         <summary>Launch &amp; sun</summary>
-        <label>Launch date and time (UTC) <input name="launch_time" type="datetime-local"></label>
+        <label>Launch date and time (UTC) <input name="launch_time" type="datetime-local" required></label>
         <div class="grid2">
-          <label>Latitude (°N) <input name="latitude" type="number" step="0.1" min="-90" max="90"></label>
-          <label>Longitude (°E, west is −) <input name="longitude" type="number" step="0.1" min="-180" max="180"></label>
+          <label>Latitude (°N) <input name="latitude" type="number" step="0.1" min="-90" max="90" required></label>
+          <label>Longitude (°E, west is −) <input name="longitude" type="number" step="0.1" min="-180" max="180" required></label>
         </div>
         <p class="hint">Sets the sun's position for the secondary-mission signal estimate. Default: national final, York area, midday.</p>
       </details>
-      <details>
-        <summary>Components (mass, cost, power)</summary>
-        <p class="hint">Masses are estimates until weighed – untick “est.” once you have weighed a part. Costs mirror the team parts sheet.</p>
-        <div class="scroll"><table class="comp">
-          <thead><tr><th>Part</th><th>g</th><th>Qty</th><th>£ (line)</th><th>est.</th></tr></thead>
-          <tbody id="comps"></tbody>
-        </table></div>
-      </details>
+      <p class="hint">Edit component masses and budgets in the <a href="#parts">Parts list</a>.</p>
       <label class="check"><input type="checkbox" id="sweeps" checked> Include sweep plots (slower)</label>
       <button type="submit" id="run" disabled>Loading…</button>
       <p id="status" class="hint" role="status">Starting Python (first load takes ~10–20 s)…</p>
     </form>
 
-    <section id="results" class="results" aria-live="polite">
-      <div class="tiles" id="tiles"></div>
-
-      <div class="panel">
-        <h2>Rule checks</h2>
-        <table class="checks"><tbody id="checks"></tbody></table>
-      </div>
-
-      <div class="panel">
-        <h2>Canopy size per shape</h2>
-        <div class="scroll"><table class="data">
-          <thead><tr><th>Shape</th><th>Cd0</th><th>Area m²</th><th>Width cm</th><th>Hole cm</th><th>Mass g</th><th>Dimensions</th></tr></thead>
-          <tbody id="shapes"></tbody>
-        </table></div>
-      </div>
-
-      <div class="panel">
-        <h2>Canopy pattern</h2>
-        <div id="pattern" class="pattern"></div>
-        <div id="downloads" class="downloads"></div>
-        <p class="hint">Full-size SVG for laser cutting, or A4 tiles with 10 mm overlap. Print at 100 % (“actual size”) and check the 100 mm scale bar before cutting.</p>
-      </div>
-
-      <div class="panel" id="mission-panel">
-        <h2>Secondary mission – expected signal</h2>
-        <div id="plot-mission" class="plot"></div>
-        <p class="hint">Simple single-scattering model (Rayleigh + haze), for planning only. The full table is in the text summary below.</p>
-      </div>
-
-      <div class="panel">
-        <h2>Descent simulation</h2>
-        <div id="plot-descent" class="plot"></div>
-      </div>
-
-      <div class="panel" id="sweep-panel">
-        <h2>Sweeps</h2>
-        <div id="plot-sweeps" class="plot"></div>
-        <p class="hint">The swing model's damping is a placeholder until calibrated from filmed drop tests.</p>
-      </div>
-
-      <details class="panel">
-        <summary>Full text summary</summary>
-        <pre id="summary"></pre>
-      </details>
-    </section>
-  </main>
-
-  <footer class="wrap foot">
-    <p>Assumptions are listed in the repo README. This tool was written with an AI tool (Claude Code, Anthropic, November 2026) – reference it as AI-assisted if you use its figures or text in competition reports.</p>
-  </footer>
-  <script src="app.js"></script>
-</body>
-</html>
+<div class="results" id="results">
+<p id="stale" class="notice" hidden>Inputs have changed. Calculate to update the results and design exports.</p>
+<section id="panel-overview" role="tabpanel" aria-labelledby="tab-overview" tabindex="0"><div class="section-heading"><div><p class="eyebrow">DESIGN AT A GLANCE</p><h2>Flight overview</h2></div></div>
+<div class="tiles" id="tiles"><p class="hint">Your design results will appear once the calculator loads.</p></div><div class="panel"><h2>Rule checks</h2><div class="scroll"><table class="checks"><tbody id="checks"></tbody></table></div></div>
+<p class="hint">PASS checks use the configured estimates. Physical tests and organiser confirmation are still needed where marked.</p></section>
+<section id="panel-parts" role="tabpanel" aria-labelledby="tab-parts" tabindex="0" hidden><div class="section-heading"><div><p class="eyebrow">BUILD &amp; BUDGET</p><h2>Parts list</h2></div></div>
+<p class="sub">Flight hardware, ground equipment and recovery materials.</p><div class="actions"><button type="button" data-export="csv" disabled>Download CSV</button><button type="button" data-export="copy" class="secondary" disabled>Copy for spreadsheet</button><button type="button" data-export="print" class="secondary" disabled>Print / PDF</button></div><div id="parts-totals" class="tiles"></div>
+<div class="panel"><p id="price-note" class="hint"></p><p class="hint">Amazon links are searches. Direct specialist links identify the intended board; confirm stock and variant before ordering. Changes are saved in this browser.</p>
+<div class="parts-toolbar"><label>Find a part<input id="parts-search" type="search" placeholder="Sensor, antenna, Pico…"></label><label>Show<select id="parts-group"><option value="all">All equipment</option><option>Flight</option><option>Ground</option><option>Materials</option></select></label><span id="parts-count" role="status"></span></div>
+<p id="parts-status" role="status">Loading parts list…</p><div class="scroll"><table class="parts-table"><thead><tr><th scope="col">Component / supplier</th><th scope="col">Group</th><th scope="col">Qty</th><th scope="col">Each (g)</th><th scope="col">Line budget (£)</th><th scope="col">Mass estimated</th></tr></thead><tbody id="parts-rows"></tbody></table></div>
+<p class="hint">Changing quantity updates flight mass; update the line budget separately to match the actual pack cost. Exports include the complete list, regardless of filters.</p><button type="button" id="reset-parts" class="secondary" disabled>Restore default parts</button></div></section>
+<section id="panel-parachute" role="tabpanel" aria-labelledby="tab-parachute" tabindex="0" hidden><div class="section-heading"><div><p class="eyebrow">LANDING &amp; RECOVERY</p><h2>Parachute design</h2></div></div>
+<div class="panel"><h2>Compare canopy shapes</h2><div class="scroll"><table class="data"><thead><tr><th>Shape</th><th>Cd0</th><th>Area m²</th><th>Width cm</th><th>Hole cm</th><th>Mass g</th><th>Dimensions</th></tr></thead><tbody id="shapes"></tbody></table></div></div>
+<div class="panel"><h2>Cutting pattern</h2><div id="pattern" class="pattern"></div><p class="hint">Full-size SVG and A4 tiles are in <a href="#exports">Exports</a>. Print at actual size and check the 100 mm scale bar.</p></div>
+<div class="panel"><h2>Descent simulation</h2><div id="plot-descent" class="plot"></div></div><div class="panel" id="sweep-panel"><h2>Parameter sweeps</h2><div id="plot-sweeps" class="plot"></div><p class="hint">Swing damping is a placeholder until calibrated from filmed drop tests.</p></div></section>
+<section id="panel-mission" role="tabpanel" aria-labelledby="tab-mission" tabindex="0" hidden><div class="section-heading"><div><p class="eyebrow">SCIENCE &amp; TELEMETRY</p><h2>Atmospheric optics</h2></div></div>
+<div class="panel"><h2>What we measure</h2><p>Temperature and pressure provide the descent profile. Spectral light and UV readings investigate changes with altitude, using colour ratios, orientation correction and a ground reference.</p><p class="hint">LoRa carries the 1 Hz backup telemetry; the planned 4G link sends the full-rate log. These are design budgets, not a live flight feed.</p><div class="scroll"><table class="data"><thead><tr><th>Stream</th><th>Rate (Hz)</th><th>Data (bytes/s)</th></tr></thead><tbody id="streams"></tbody></table></div><p id="data-budget" class="hint"></p></div>
+<div class="panel" id="mission-panel"><h2>Expected optical signal</h2><div id="plot-mission" class="plot"></div><p class="hint">Simple Rayleigh + haze model for planning. Actual accuracy depends on calibration, pointing, weather and canopy shading.</p></div><p id="mission-unavailable" class="hint" hidden>The optical estimate requires a sun elevation above 5°. Adjust the launch date, time or location.</p></section>
+<section id="panel-exports" role="tabpanel" aria-labelledby="tab-exports" tabindex="0" hidden><div class="section-heading"><div><p class="eyebrow">TAKE IT WITH YOU</p><h2>Exports</h2></div></div>
+<div class="export-grid"><div class="panel"><h2>Parts &amp; purchasing</h2><p>Every component, quantity, budget, supplier URL and purchasing note. Always includes all equipment.</p><div class="actions"><button type="button" data-export="csv" disabled>Download CSV</button><button type="button" data-export="copy" class="secondary" disabled>Copy for spreadsheet</button><button type="button" data-export="print" class="secondary" disabled>Print / PDF</button></div></div>
+<div class="panel"><h2>Design report</h2><p>Calculated mass budget, canopy comparison, mission estimates and rule checks.</p><button type="button" id="download-summary" disabled>Download summary (.txt)</button><p id="export-version" class="hint">Run a calculation to prepare the report.</p></div></div>
+<div class="panel"><h2>Canopy cutting files</h2><div id="downloads" class="downloads"></div><p class="hint">Full-size SVG or A4 tiles with 10 mm overlap. Print at 100% and check the scale bar.</p></div><details class="panel"><summary>Read full design summary</summary><pre id="summary"></pre></details></section>
+<p id="export-status" role="status" class="hint"></p></div></div></main>
+<footer class="wrap foot"><p>Planning estimates · Supplier prices and stock may change · AI-assisted calculator (Claude Code, November 2026). Reference generated figures and text appropriately in competition reports.</p></footer>
+<script src="parts.js"></script><script src="app.js"></script></body></html>

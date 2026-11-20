@@ -93,3 +93,54 @@ th, td { padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align:
 .downloads { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
 pre { overflow-x: auto; font-size: 0.75rem; margin: 12px 0 0; }
 .foot { color: var(--ink2); font-size: 0.8rem; padding-bottom: 30px; }
+
+/* Section navigation and purchasing workspace */
+[hidden] { display: none !important; }
+a { color: var(--accent); }
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, summary:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+.header-row { display: flex; justify-content: space-between; gap: 20px; align-items: center; padding-top: 24px; }
+.top h1 { padding-top: 0; font-size: 1.8rem; letter-spacing: -0.04em; }
+.top h1 span { color: var(--ink2); font-weight: 400; }
+.eyebrow { font-size: 0.65rem; font-weight: 700; letter-spacing: 0.14em; color: var(--ink2); margin: 0 0 7px; }
+.project-badge { font-size: 0.75rem; border: 1px solid var(--line); border-radius: 30px; padding: 8px 13px; white-space: nowrap; }
+.tabs { display: flex; gap: 4px; padding: 13px 0 0; border-bottom: 1px solid var(--line); overflow-x: auto; }
+.tabs button { flex: 0 0 auto; width: auto; margin: 0; padding: 13px 18px; background: transparent; color: var(--ink2); border-radius: 6px 6px 0 0; border-bottom: 3px solid transparent; font-size: 0.88rem; }
+.tabs button[aria-selected="true"] { color: var(--accent); border-bottom-color: var(--accent); background: var(--panel); }
+.layout { padding-top: 24px; grid-template-columns: 300px minmax(0, 1fr); }
+.layout.wide { grid-template-columns: minmax(0, 1fr); }
+.section-heading { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 20px; }
+.section-heading h2 { font-size: 1.55rem; letter-spacing: -0.03em; margin: 0; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.actions button, .panel > button { width: auto; margin-top: 0; font-size: 0.85rem; }
+.secondary { background: var(--panel); color: var(--ink); border: 1px solid var(--line); }
+.notice { border-left: 3px solid var(--warn); padding: 12px 16px; background: var(--panel); color: var(--warn); font-size: 0.85rem; margin: 0 0 16px; }
+.parts-toolbar { display: flex; gap: 16px; align-items: end; margin-top: 22px; }
+.parts-toolbar label:first-child { flex: 1; }
+.parts-toolbar label { min-width: 160px; }
+#parts-count { font-size: 0.8rem; color: var(--ink2); padding-bottom: 18px; white-space: nowrap; }
+.parts-table { min-width: 850px; font-size: 0.82rem; }
+.parts-table th { padding-top: 14px; padding-bottom: 14px; }
+.parts-table td { padding-top: 16px; padding-bottom: 16px; }
+.parts-table th:first-child { width: 48%; }
+.parts-table td strong { display: block; font-weight: 600; font-size: 0.88rem; }
+.parts-table input[type="number"] { width: 80px; font: inherit; border: 1px solid var(--line); background: var(--bg); color: var(--ink); padding: 7px; border-radius: 5px; }
+.parts-table input[data-k="qty"] { width: 56px; }
+.parts-table input[type="checkbox"] { width: 17px; height: 17px; accent-color: var(--accent); }
+.parts-table input:invalid { border-color: var(--fail); }
+.supplier-links { display: flex; flex-wrap: wrap; gap: 7px 12px; margin-top: 8px; }
+.supplier-links a { font-size: 0.77rem; text-underline-offset: 3px; }
+.part-note { color: var(--ink2); font-size: 0.75rem; margin: 7px 0 0; max-width: 65ch; }
+.group-tag { display: inline-block; padding: 4px 7px; border: 1px solid var(--line); border-radius: 4px; font-size: 0.7rem; }
+.export-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.export-grid p { color: var(--ink2); font-size: 0.9rem; }
+.print-frame { position: fixed; width: 1px; height: 1px; bottom: 0; left: 0; border: 0; }
+@media (max-width: 860px) {
+  .layout { grid-template-columns: minmax(0, 1fr); }
+  .header-row { align-items: start; }
+  .project-badge { display: none; }
+  .section-heading { align-items: start; flex-direction: column; }
+  .export-grid { grid-template-columns: 1fr; }
+  .parts-toolbar { flex-wrap: wrap; gap: 0 12px; }
+  .parts-toolbar label:first-child { flex-basis: 100%; }
+  .tabs button { padding: 12px 14px; }
+}
