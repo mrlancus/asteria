@@ -27,10 +27,11 @@ SOURCES = [
     ("PTFE", "PTFE sheet 1mm white", None, "", "Material for two diffuser windows; verify optical transmission by calibration."),
     ("PETG shell", "PETG filament 1.75mm", None, "", "Custom school-printed shell and bulkheads. Link is for filament, not a finished part; £0 assumes school stock."),
     ("Fasteners", "M2 screws nuts nylon hot glue tape", None, "", "Workshop consumables; £0 assumes existing stock. Add a budget if buying new."),
-    ("A7670E", "SIMCom A7670E LTE Cat 1 UART development board", None, "", "Provisional module: choose a usable breakout, not a bare solder-down modem. Confirm UK bands, power and UART pinout."),
-    ("LTE FPC", "4G LTE FPC antenna IPEX U.FL", None, "", "Match connector and bands to the chosen modem; fits inside the shell."),
+    ("A7670E", "Waveshare A7670E Cat-1 HAT", HUT + "a7670e-lte-cat-1-hat-for-raspberry-pi-2g-gsm-gprs", "The Pi Hut", "Sold out at Pi Hut on 19 Nov – use Notify me. Wire its UART, power-key and power to the Pico; turn 2G off."),
+    ("LTE FPC", "SparkFun WRL-17841 LTE FPC antenna", "https://proto-pic.co.uk/product/antenna-wide-band-4g-lte-internal-lora-wrl-17841", "Proto-Pic", "u.FL, 53 × 24 mm, sticks inside the shell wall. Check it matches the HAT's antenna socket."),
     ("1000", "1000uF low ESR electrolytic capacitor 6.3V", None, "", "Check voltage rating, polarity, dimensions and ESR for the modem supply."),
-    ("Pay-as-you-go", "pay as you go data SIM UK", None, "", "Check launch-site coverage, data allowance, expiry and modem support."),
+    ("PAYG SIM", "giffgaff SIM", "https://www.giffgaff.com/", "giffgaff", "Free SIM, ~£6 2 GB goodybag. Turn the PIN off, set the APN; check launch-site coverage."),
+    ("shipping", "", "https://thepihut.com/pages/delivery", "Pi Hut delivery", "Pi Hut DHL next day £9.99 + Amazon ~£4.99 (free with Prime) + Proto-Pic ~£5 – confirm at checkout."),
 ]
 
 def supplier_info(name):
@@ -39,7 +40,7 @@ def supplier_info(name):
         if fragment in name:
             query, url, label, note = q, u, l, n
             break
-    links = [{"label": "Amazon search", "url": "https://www.amazon.co.uk/s?k=" + quote_plus(query), "kind": "search"}]
+    links = [{"label": "Amazon search", "url": "https://www.amazon.co.uk/s?k=" + quote_plus(query), "kind": "search"}] if query else []
     if url:
         links.append({"label": label, "url": url, "kind": "product"})
     elif "STEMMA" in name:
@@ -60,7 +61,7 @@ def parts_catalog(cfg=None):
                                                 ("Amazon swivel", "ball bearing fishing swivels"),
                                                 ("Amazon cord", "lightweight braided nylon cord")]]})
     return {"rows": rows, "budget_gbp": cfg.mass.budget_gbp, "links_checked": "2026-11-16",
-            "price_note": "Editable planning allowances from the project config, not live supplier quotes. Line budgets include packs and are not multiplied by quantity. Shipping is not included."}
+            "price_note": "Editable planning allowances from the project config, not live supplier quotes. Line budgets include packs and are not multiplied by quantity. Fast UK shipping is included as its own line."}
 
 if __name__ == "__main__":
     print(json.dumps(parts_catalog(), ensure_ascii=True, indent=2))
