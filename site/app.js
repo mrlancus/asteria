@@ -308,26 +308,39 @@ worker.onerror = () => {
 
 // ---------------------------------------------------------------- fabric layout
 let fabricUrls = [];
-function renderFabric(d) {
-  const spill = form.elements.spill.value, speed = form.elements.speed.value;
-  $("fab-designs").innerHTML = Object.entries(d.shapes).map(([k, label], i) => {
-    const on = k === "flat_hexagon";
-    return `<tr data-shape="${k}"><td><input type="checkbox" data-f="use" ${on ? "checked" : ""} aria-label="Use ${esc(label)}"></td>
-      <td>${esc(label)}</td>
-      <td><input type="number" data-f="spill" min="0" max="45" step="1" value="${spill}" aria-label="${esc(label)} spill hole"></td>
-      <td><input type="number" data-f="speed" min="5" max="25" step="0.5" value="${speed}" aria-label="${esc(label)} target speed"></td>
-      <td><input type="number" data-f="qty" min="0" max="50" step="1" value="1" aria-label="${esc(label)} copies"></td>
-      <td><input type="checkbox" data-f="fill" ${on ? "checked" : ""} aria-label="Fill the rest of the fabric with ${esc(label)}"></td></tr>`;
-  }).join("");
+let fabricShapes = {};
+function fabricRow(shape, spill, speed, qty = 1, fill = false) {
+  const opts = Object.entries(fabricShapes).map(([k, v]) => `<option value="${k}" ${k === shape ? "selected" : ""}>${esc(v)}</option>`).join("");
+  const tr = document.createElement("tr");
+  tr.innerHTML = `<td><select data-f="shape" aria-label="Shape">${opts}</select></td>
+    <td><input type="number" data-f="spill" min="0" max="45" step="1" value="${spill}" aria-label="Spill hole %"></td>
+    <td><input type="number" data-f="speed" min="5" max="25" step="0.5" value="${speed}" aria-label="Target speed"></td>
+    <td><input type="number" data-f="qty" min="0" max="50" step="1" value="${qty}" aria-label="Copies"></td>
+    <td><input type="checkbox" data-f="fill" ${fill ? "checked" : ""} aria-label="Fill the rest of the fabric with this design"></td>
+    <td><button type="button" class="secondary fab-del" aria-label="Remove this design">×</button></td>`;
+  $("fab-designs").append(tr);
 }
+function fabricMatrix() {
+  const shape = form.elements.shape.value, spill = Number(form.elements.spill.value), speed = form.elements.speed.value;
+  $("fab-designs").innerHTML = "";
+  for (const k of Object.keys(fabricShapes)) fabricRow(k, spill, speed, 1);           // best shape
+  const holes = $("fab-holes").value.split(/[,\s]+/).map(Number).filter((h) => Number.isFinite(h) && h >= 0 && h < 50);
+  for (const h of [...new Set(holes)]) if (h !== spill) fabricRow(shape, h, speed, 1);  // best hole
+  fabricRow(shape, spill, speed, 0, true);                                             // spares of the default
+}
+function renderFabric(d) { fabricShapes = d.shapes; fabricMatrix(); }
+$("fab-add").addEventListener("click", () => fabricRow(form.elements.shape.value, form.elements.spill.value, form.elements.speed.value));
+$("fab-matrix").addEventListener("click", fabricMatrix);
+$("fab-clear").addEventListener("click", () => { $("fab-designs").innerHTML = ""; });
+$("fab-designs").addEventListener("click", (e) => { if (e.target.classList.contains("fab-del")) e.target.closest("tr").remove(); });
 $("fab-run").addEventListener("click", () => {
   if (!workerReady || !form.checkValidity()) { form.reportValidity(); return; }
-  const designs = [...$("fab-designs").children].filter((tr) => tr.querySelector('[data-f="use"]').checked).map((tr) => {
+  const designs = [...$("fab-designs").children].map((tr) => {
     const v = (f) => tr.querySelector(`[data-f="${f}"]`);
-    return { shape: tr.dataset.shape, spill: Number(v("spill").value), speed: Number(v("speed").value),
+    return { shape: v("shape").value, spill: Number(v("spill").value), speed: Number(v("speed").value),
              qty: Number(v("qty").value), fill: v("fill").checked };
   });
-  if (!designs.length) { $("fab-status").textContent = "Tick at least one design."; return; }
+  if (!designs.length) { $("fab-status").textContent = "Add at least one design."; return; }
   $("fab-run").disabled = true;
   $("fab-run").textContent = "Building layout…";
   $("fab-status").textContent = "Packing the pieces and drawing the A4 pages – this can take up to a minute.";
@@ -347,7 +360,17 @@ function showFabric(r) {
   $("fab-preview").innerHTML = `<img alt="Layout of all canopy pieces on the fabric" src="${svgUrl}">`;
   $("fab-downloads").innerHTML =
     `<a class="btn" download="asteria-fabric-A4-pages.pdf" href="${url(new Blob([pdfBytes], { type: "application/pdf" }))}">A4 pages (PDF, ${r.pages + 1} pages)</a>` +
-    `<a class="btn" download="asteria-fabric-layout.svg" href="${svgUrl}">Full-size layout (SVG)</a>`;
+    `<a class="btn" download="asteria-fabric-layout.svg" href="${svgUrl}">Full-size layout (SVG)</a>` +
+    `<a class="btn" download="asteria-drop-test-sheet.csv" href="${url(new Blob([testSheet(r)], { type: "text/csv" }))}">Drop-test record sheet (CSV)</a>`;
   $("fab-result").hidden = false;
   $("fab-status").textContent = "";
+}
+
+function testSheet(r) {
+  const q = (v) => /[",\n]/.test(String(v)) ? `"${String(v).replace(/"/g, '""')}"` : String(v);
+  const rows = [["Canopy", "Shape", "Spill hole %", "Width cm", "Area m2", "Predicted speed m/s",
+                 "Drop height m", "Fall time s", "Measured speed m/s", "Max swing deg", "Settles below 5 deg after s", "Notes"]];
+  for (const d of r.designs) for (let i = 1; i <= d.count; i++)
+    rows.push([d.code + i, d.shape, d.spill, d.width_cm.toFixed(1), d.area_m2.toFixed(4), d.speed, "", "", "", "", "", ""]);
+  return "\ufeff" + rows.map((x) => x.map(q).join(",")).join("\r\n");
 }

@@ -111,7 +111,10 @@ def _area(poly):
 
 def test_new_shapes_have_the_right_area():
     assert _area(P.canopy_geometry("flat_square", 0.05, 0).pieces[0]) == pytest.approx(0.05)
-    assert _area(P.canopy_geometry("flat_octagon", 0.05, 0).pieces[0]) == pytest.approx(0.05)
+    for shape in ("flat_octagon", "flat_pentagon", "flat_dodecagon", "cruciform_long"):
+        assert _area(P.canopy_geometry(shape, 0.05, 0).pieces[0]) == pytest.approx(0.05)
+    hexa, gon = P.canopy_geometry("flat_hexagon", 0.05, 0), P._polygon(0.05, 0, 6, "x")
+    assert gon.width_m == pytest.approx(hexa.width_m)          # generic polygon agrees with the hexagon
     c = P.canopy_geometry("conical", 0.05, 20, n_gores=8)
     assert 8 * _area(c.pieces[0]) == pytest.approx(0.05 * (1 - 0.2 ** 2), rel=0.03)  # flat gores ≈ cone surface
     assert c.hole_area_m2 == pytest.approx(0.05 * 0.2 ** 2)

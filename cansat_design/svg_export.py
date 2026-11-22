@@ -48,7 +48,7 @@ def offset_polygon(pts: np.ndarray, dist: float) -> np.ndarray:
 def attachment_points(canopy: P.Canopy, n_lines: int) -> np.ndarray:
     """Where the shroud lines attach, in the same frame as the flat piece (m)."""
     outline = canopy.pieces[0]
-    if canopy.shape in ("flat_hexagon", "flat_octagon"):
+    if canopy.shape in ("flat_hexagon", "flat_octagon", "flat_pentagon", "flat_dodecagon"):
         return outline
     if canopy.shape == "flat_square":
         return np.vstack([outline, (outline + np.roll(outline, -1, axis=0)) / 2])   # corners + mid-sides
@@ -56,7 +56,7 @@ def attachment_points(canopy: P.Canopy, n_lines: int) -> np.ndarray:
         r = canopy.width_m / 2
         a = np.linspace(0, 2 * math.pi, n_lines + 1)[:-1]
         return np.column_stack([r * np.cos(a), r * np.sin(a)])
-    if canopy.shape == "cruciform":
+    if canopy.shape in ("cruciform", "cruciform_long"):
         h, a = canopy.dims["arm width"] / 2, canopy.width_m / 2
         return np.array([[h, a], [-h, a], [-a, h], [-a, -h], [-h, -a], [h, -a], [a, -h], [a, h]])
     # gore (hemispherical or conical): lines at the two skirt corners (shared with neighbouring gores)

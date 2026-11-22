@@ -37,7 +37,13 @@ SHAPES = {
     "flat_square": ShapeInfo(0.75, 8, 0.03, "Flat square"),
     "flat_octagon": ShapeInfo(0.78, 8, 0.04, "Flat octagon"),
     "conical": ShapeInfo(0.80, 8, 0.06, "Conical (gores)"),
+    "flat_pentagon": ShapeInfo(0.78, 5, 0.04, "Flat pentagon"),
+    "flat_dodecagon": ShapeInfo(0.76, 12, 0.03, "Flat dodecagon"),
+    "cruciform_long": ShapeInfo(0.65, 8, 0.12, "Cruciform, long arms"),   # span 4 × arm width
 }
+SHORT = {"flat_hexagon": "hex", "flat_circle": "circ", "cruciform": "cross", "hemispherical": "hemi",
+         "flat_square": "sq", "flat_octagon": "oct", "conical": "cone", "flat_pentagon": "pent",
+         "flat_dodecagon": "dodec", "cruciform_long": "xlong"}
 GORED = {"hemispherical", "conical"}       # cut from several identical gores
 
 
@@ -110,7 +116,7 @@ def _circle(area, p):
                   math.pi * (D + d), {"diameter": D}, [outline])
 
 
-def _cruciform(area, p, ratio):
+def _cruciform(area, p, ratio, name="cruciform"):
     # Two w × L rectangles crossing: A = 2·L·w − w² = w²(2r − 1)
     w = math.sqrt(area / (2 * ratio - 1))
     L = ratio * w
@@ -121,7 +127,7 @@ def _cruciform(area, p, ratio):
         [h, h], [h, a], [-h, a], [-h, h], [-a, h], [-a, -h],
         [-h, -h], [-h, -a], [h, -a], [h, -h], [a, -h], [a, h],
     ])
-    return Canopy("cruciform", area, p * 100, L, d, math.pi * d ** 2 / 4,
+    return Canopy(name, area, p * 100, L, d, math.pi * d ** 2 / 4,
                   4 * L + math.pi * d,
                   {"arm width": w, "arm length (beyond centre square)": arm, "total span": L},
                   [outline])
@@ -145,6 +151,19 @@ def _octagon(area, p):
     outline = np.column_stack([R * np.cos(ang), R * np.sin(ang)])
     return Canopy("flat_octagon", area, p * 100, flats, d, math.pi * d ** 2 / 4, 8 * s + math.pi * d,
                   {"side": s, "across flats": flats, "across corners": 2 * R}, [outline])
+
+
+def _polygon(area, p, n, name):
+    """Regular n-gon with a flat edge at the bottom; width = 2 × apothem (across flats)."""
+    R = math.sqrt(2 * area / (n * math.sin(2 * math.pi / n)))
+    side = 2 * R * math.sin(math.pi / n)
+    W = 2 * R * math.cos(math.pi / n)
+    d = p * W
+    ang = np.radians(np.arange(n) * 360 / n - 90 + 180 / n)
+    outline = np.column_stack([R * np.cos(ang), R * np.sin(ang)])
+    dims = ({"side": side, "across flats": W, "across corners": 2 * R} if n % 2 == 0 else
+            {"side": side, "twice apothem": W, "flat to corner": R + W / 2})
+    return Canopy(name, area, p * 100, W, d, math.pi * d ** 2 / 4, n * side + math.pi * d, dims, [outline])
 
 
 def _cone(area, p, n_gores, half_angle_deg):
@@ -212,6 +231,12 @@ def canopy_geometry(shape: str, gross_area_m2: float, spill_pct: float,
         return _octagon(gross_area_m2, p)
     if shape == "conical":
         return _cone(gross_area_m2, p, n_gores, cone_deg)
+    if shape == "flat_pentagon":
+        return _polygon(gross_area_m2, p, 5, shape)
+    if shape == "flat_dodecagon":
+        return _polygon(gross_area_m2, p, 12, shape)
+    if shape == "cruciform_long":
+        return _cruciform(gross_area_m2, p, 4.0, shape)
     raise ValueError(f"unknown shape {shape!r}, choose from {list(SHAPES)}")
 
 

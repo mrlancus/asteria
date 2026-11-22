@@ -41,12 +41,12 @@ def summary(d) -> str:
 
     add(f"\nCANOPY SIZE PER SHAPE  (for {d.mass_kg * 1000:.0f} g at {ms.target_speed_m_s:.0f} m/s, "
         f"spill hole {pc.spill_hole_pct:.0f} % of width)")
-    add(f"  {'Shape':<15}{'Cd0':>5}{'Area m²':>9}{'Width cm':>10}{'Hole cm':>9}{'Mass g':>8}  Dimensions")
+    add(f"  {'Shape':<21}{'Cd0':>5}{'Area m²':>9}{'Width cm':>10}{'Hole cm':>9}{'Mass g':>8}  Dimensions")
     for s, (c, m) in d.all_shapes.items():
         cd0 = d.cd0 if s == pc.shape else P.SHAPES[s].cd0
         dims = ", ".join(f"{k} {val * 100:.1f}" for k, val in c.dims.items())
         mark = "*" if s == pc.shape else " "
-        add(f" {mark}{P.SHAPES[s].label:<15}{cd0:5.2f}{c.gross_area_m2:9.4f}{c.width_m * 100:10.1f}"
+        add(f" {mark}{P.SHAPES[s].label:<21}{cd0:5.2f}{c.gross_area_m2:9.4f}{c.width_m * 100:10.1f}"
             f"{c.hole_d_m * 100:9.1f}{m.total_g:8.1f}  {dims} cm")
     add("  (* = chosen shape; hemispherical and conical need "
         f"{pc.n_gores} gores of the shape in the SVG when chosen)")

@@ -137,8 +137,10 @@ def layout(params_json: str, layout_json: str) -> str:
     lay = LY.build_layout(cfg, items, float(q["width_mm"]), float(q["length_mm"]), float(q["gap_mm"]))
     pw, ph, nx, ny = LY.page_grid(lay)
     return json.dumps({
-        "designs": [{"label": lbl, "count": n, "pieces": c.n_pieces, "width_cm": c.width_m * 100}
-                    for (lbl, c, _), n in zip(lay.designs, lay.counts)],
+        "designs": [{"label": lbl, "code": LY.code(i), "shape": P.SHAPES[it.shape].label, "spill": it.spill_pct,
+                     "speed": it.speed_m_s, "count": n, "pieces": c.n_pieces, "width_cm": c.width_m * 100,
+                     "area_m2": c.gross_area_m2}
+                    for i, ((lbl, c, it), n) in enumerate(zip(lay.designs, lay.counts))],
         "unplaced": [{"label": lay.designs[i][0], "missing": m} for i, m in lay.unplaced],
         "used_m2": lay.used_m2, "fabric_m2": lay.fabric_m2, "pages": nx * ny, "rows": ny, "cols": nx,
         "svg": LY.layout_svg(lay),
