@@ -358,8 +358,10 @@ function showFabric(r) {
     r.designs.map((d) => `<li>${esc(d.label)} – <strong>${d.count}</strong> parachute${d.count === 1 ? "" : "s"}${d.pieces > 1 ? ` (${d.pieces} gores each)` : ""}</li>`).join("") + "</ul>" +
     r.unplaced.map((u) => `<p class="notice">${esc(u.label)}: ${u.missing} cop${u.missing === 1 ? "y" : "ies"} did not fit.</p>`).join("");
   $("fab-preview").innerHTML = `<img alt="Layout of all canopy pieces on the fabric" src="${svgUrl}">`;
+  const tplBytes = Uint8Array.from(atob(r.templates_pdf), (c) => c.charCodeAt(0));
   $("fab-downloads").innerHTML =
-    `<a class="btn" download="asteria-fabric-A4-pages.pdf" href="${url(new Blob([pdfBytes], { type: "application/pdf" }))}">A4 pages (PDF, ${r.pages + 1} pages)</a>` +
+    `<a class="btn" download="asteria-parachute-templates.pdf" href="${url(new Blob([tplBytes], { type: "application/pdf" }))}">Reusable templates + cutting map (PDF, ${r.template_pages} pages)</a>` +
+    `<a class="btn secondary" download="asteria-fabric-A4-pages.pdf" href="${url(new Blob([pdfBytes], { type: "application/pdf" }))}">Whole layout full size (PDF, ${r.pages + 1} pages)</a>` +
     `<a class="btn" download="asteria-fabric-layout.svg" href="${svgUrl}">Full-size layout (SVG)</a>` +
     `<a class="btn" download="asteria-drop-test-sheet.csv" href="${url(new Blob([testSheet(r)], { type: "text/csv" }))}">Drop-test record sheet (CSV)</a>`;
   $("fab-result").hidden = false;

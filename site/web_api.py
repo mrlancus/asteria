@@ -125,6 +125,12 @@ def run(params_json: str, with_sweeps: bool = True) -> str:
     })
 
 
+def _templates(lay, cfg):
+    from cansat_design.templates import templates_pdf
+    pdf, n = templates_pdf(lay, cfg.parachute)
+    return base64.b64encode(pdf).decode(), n
+
+
 def layout(params_json: str, layout_json: str) -> str:
     """Nest the chosen canopy designs on the fabric; return the preview, full-size SVG and A4 PDF."""
     from cansat_design import layout as LY
@@ -145,4 +151,5 @@ def layout(params_json: str, layout_json: str) -> str:
         "used_m2": lay.used_m2, "fabric_m2": lay.fabric_m2, "pages": nx * ny, "rows": ny, "cols": nx,
         "svg": LY.layout_svg(lay),
         "pdf": base64.b64encode(LY.a4_pdf(lay)).decode(),
+        **dict(zip(("templates_pdf", "template_pages"), _templates(lay, cfg))),
     })

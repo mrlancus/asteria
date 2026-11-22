@@ -131,3 +131,11 @@ def test_fabric_layout_keeps_pieces_on_the_fabric_and_apart():
     for i, a in enumerate(lay.placed):          # no cut outline has a vertex inside another piece
         for b in lay.placed[i + 1:]:
             assert not MplPath(b.cut).contains_points(a.cut).any()
+
+
+def test_quarter_template_is_a_quarter_of_the_piece():
+    from cansat_design.templates import _region
+    poly = P.canopy_geometry("flat_octagon", 0.05, 0).pieces[0]
+    assert 4 * _area(_region(poly, "quarter")) == pytest.approx(0.05)
+    pent = P.canopy_geometry("flat_pentagon", 0.05, 0).pieces[0]
+    assert 2 * _area(_region(pent, "half")) == pytest.approx(0.05)
