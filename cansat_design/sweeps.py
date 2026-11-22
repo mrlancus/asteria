@@ -15,7 +15,7 @@ def speed_vs_area(d, areas_m2=None) -> dict:
         cd0 = pc.cd if (pc.cd is not None and s == pc.shape) else P.SHAPES[s].cd0
         v = []
         for a in areas:
-            c = P.canopy_geometry(s, a, pc.spill_hole_pct, pc.cruciform_span_ratio, pc.n_gores)
+            c = P.canopy_geometry(s, a, pc.spill_hole_pct, pc.cruciform_span_ratio, pc.n_gores, pc.cone_half_angle_deg)
             v.append(P.terminal_velocity(d.mass_kg, d.rho, P.drag_area(c, cd0, pc.vent_cd_loss)))
         out[s] = np.array(v)
     return out

@@ -84,7 +84,7 @@ class MassLimits:
 
 @dataclass
 class Parachute:
-    shape: str = "flat_hexagon"         # flat_hexagon | flat_circle | cruciform | hemispherical
+    shape: str = "flat_hexagon"         # flat_hexagon | flat_circle | cruciform | hemispherical | flat_square | flat_octagon | conical
     cd: float | None = None             # None = use the default for the shape (see parachute.SHAPES)
     spill_hole_pct: float = 18.0        # spill-hole diameter as % of canopy width
     vent_cd_loss: float = 1.0           # k in Cd_eff = Cd0·(1 − k·λ), see README
@@ -98,7 +98,8 @@ class Parachute:
     reinforcement_g: float = 2.0        # tape, thread, line attachment patches
     seam_allowance_mm: float = 10.0     # hem / seam added around every cut edge
     cruciform_span_ratio: float = 3.0   # total span / arm width (3 = arms as long as they are wide)
-    n_gores: int = 8                    # hemispherical only
+    n_gores: int = 8                    # hemispherical and conical
+    cone_half_angle_deg: float = 60.0   # conical: half-angle from the axis (90° = flat)
     # Opening shock (see README for assumptions)
     opening_speed_m_s: float = 20.0     # speed of the CanSat when the canopy opens
     opening_load_factor: float = 1.8    # Cx – conservative value for solid flat canopies

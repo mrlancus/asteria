@@ -107,7 +107,13 @@ function show(r) {
 worker.onmessage = (e) => {
   const m = e.data;
   if (m.type === "status") $("status").textContent = m.text;
-  if (m.type === "ready") { fillDefaults(m.defaults); workerReady = true; run(); }
+  if (m.type === "ready") { fillDefaults(m.defaults); renderFabric(m.defaults); workerReady = true; $("fab-run").disabled = false; run(); }
+  if (m.type === "layout" || m.type === "layout-error") {
+    $("fab-run").disabled = false;
+    $("fab-run").textContent = "Build fabric layout";
+    if (m.type === "layout") showFabric(m.result); else $("fab-status").textContent = "Error: " + m.text;
+    return;
+  }
   if (m.type === "result") show(m.result);
   if (m.type === "error") $("status").textContent = "Error: " + m.text;
   if (m.type === "result" || m.type === "error") {
@@ -298,3 +304,50 @@ worker.onerror = () => {
   updateFreshness();
   $("status").textContent = "The calculator could not start. Reload to retry; the parts list and its exports work independently.";
 };
+
+
+// ---------------------------------------------------------------- fabric layout
+let fabricUrls = [];
+function renderFabric(d) {
+  const spill = form.elements.spill.value, speed = form.elements.speed.value;
+  $("fab-designs").innerHTML = Object.entries(d.shapes).map(([k, label], i) => {
+    const on = k === "flat_hexagon";
+    return `<tr data-shape="${k}"><td><input type="checkbox" data-f="use" ${on ? "checked" : ""} aria-label="Use ${esc(label)}"></td>
+      <td>${esc(label)}</td>
+      <td><input type="number" data-f="spill" min="0" max="45" step="1" value="${spill}" aria-label="${esc(label)} spill hole"></td>
+      <td><input type="number" data-f="speed" min="5" max="25" step="0.5" value="${speed}" aria-label="${esc(label)} target speed"></td>
+      <td><input type="number" data-f="qty" min="0" max="50" step="1" value="1" aria-label="${esc(label)} copies"></td>
+      <td><input type="checkbox" data-f="fill" ${on ? "checked" : ""} aria-label="Fill the rest of the fabric with ${esc(label)}"></td></tr>`;
+  }).join("");
+}
+$("fab-run").addEventListener("click", () => {
+  if (!workerReady || !form.checkValidity()) { form.reportValidity(); return; }
+  const designs = [...$("fab-designs").children].filter((tr) => tr.querySelector('[data-f="use"]').checked).map((tr) => {
+    const v = (f) => tr.querySelector(`[data-f="${f}"]`);
+    return { shape: tr.dataset.shape, spill: Number(v("spill").value), speed: Number(v("speed").value),
+             qty: Number(v("qty").value), fill: v("fill").checked };
+  });
+  if (!designs.length) { $("fab-status").textContent = "Tick at least one design."; return; }
+  $("fab-run").disabled = true;
+  $("fab-run").textContent = "Building layout…";
+  $("fab-status").textContent = "Packing the pieces and drawing the A4 pages – this can take up to a minute.";
+  worker.postMessage({ kind: "layout", params: params(), layout: {
+    width_mm: Number($("fab-w").value), length_mm: Number($("fab-l").value), gap_mm: Number($("fab-gap").value), designs } });
+});
+function showFabric(r) {
+  fabricUrls.forEach((u) => URL.revokeObjectURL(u));
+  const url = (blob) => { const u = URL.createObjectURL(blob); fabricUrls = [...fabricUrls, u]; return u; };
+  fabricUrls = [];
+  const pdfBytes = Uint8Array.from(atob(r.pdf), (c) => c.charCodeAt(0));
+  const svgUrl = url(new Blob([r.svg], { type: "image/svg+xml" }));
+  const pct = (100 * r.used_m2 / r.fabric_m2).toFixed(0);
+  $("fab-stats").innerHTML = `<p><strong>${pct} % of the fabric used</strong> (${fmt(r.used_m2, 2)} of ${fmt(r.fabric_m2, 2)} m², including seam allowances) · ${r.pages} A4 pages (${r.rows} rows × ${r.cols} columns)</p><ul>` +
+    r.designs.map((d) => `<li>${esc(d.label)} – <strong>${d.count}</strong> parachute${d.count === 1 ? "" : "s"}${d.pieces > 1 ? ` (${d.pieces} gores each)` : ""}</li>`).join("") + "</ul>" +
+    r.unplaced.map((u) => `<p class="notice">${esc(u.label)}: ${u.missing} cop${u.missing === 1 ? "y" : "ies"} did not fit.</p>`).join("");
+  $("fab-preview").innerHTML = `<img alt="Layout of all canopy pieces on the fabric" src="${svgUrl}">`;
+  $("fab-downloads").innerHTML =
+    `<a class="btn" download="asteria-fabric-A4-pages.pdf" href="${url(new Blob([pdfBytes], { type: "application/pdf" }))}">A4 pages (PDF, ${r.pages + 1} pages)</a>` +
+    `<a class="btn" download="asteria-fabric-layout.svg" href="${svgUrl}">Full-size layout (SVG)</a>`;
+  $("fab-result").hidden = false;
+  $("fab-status").textContent = "";
+}

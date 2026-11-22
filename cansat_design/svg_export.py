@@ -48,8 +48,10 @@ def offset_polygon(pts: np.ndarray, dist: float) -> np.ndarray:
 def attachment_points(canopy: P.Canopy, n_lines: int) -> np.ndarray:
     """Where the shroud lines attach, in the same frame as the flat piece (m)."""
     outline = canopy.pieces[0]
-    if canopy.shape == "flat_hexagon":
+    if canopy.shape in ("flat_hexagon", "flat_octagon"):
         return outline
+    if canopy.shape == "flat_square":
+        return np.vstack([outline, (outline + np.roll(outline, -1, axis=0)) / 2])   # corners + mid-sides
     if canopy.shape == "flat_circle":
         r = canopy.width_m / 2
         a = np.linspace(0, 2 * math.pi, n_lines + 1)[:-1]
@@ -57,7 +59,7 @@ def attachment_points(canopy: P.Canopy, n_lines: int) -> np.ndarray:
     if canopy.shape == "cruciform":
         h, a = canopy.dims["arm width"] / 2, canopy.width_m / 2
         return np.array([[h, a], [-h, a], [-a, h], [-a, -h], [-h, -a], [h, -a], [a, -h], [a, h]])
-    # hemispherical gore: lines at the two skirt corners (shared with neighbouring gores)
+    # gore (hemispherical or conical): lines at the two skirt corners (shared with neighbouring gores)
     top = outline[np.argmax(outline[:, 1])]
     return np.array([[top[0], top[1]], [-top[0], top[1]]])
 
@@ -86,7 +88,7 @@ def build_drawing(canopy: P.Canopy, pc) -> tuple[str, float, float]:
         f'<path d="{_path(tf(cut))}" fill="none" stroke="#000" stroke-width="0.4"/>',
         f'<path d="{_path(tf(piece))}" fill="none" stroke="#2a78d6" stroke-width="0.3" stroke-dasharray="3,2"/>',
     ]
-    if canopy.hole_d_m > 0 and canopy.shape != "hemispherical":
+    if canopy.hole_d_m > 0 and canopy.n_pieces == 1:
         cx, cy = tf(np.array([0.0, 0.0]))[0]
         r_fin = canopy.hole_d_m * 500
         els.append(f'<circle cx="{cx:.2f}" cy="{cy:.2f}" r="{r_fin:.2f}" fill="none" '

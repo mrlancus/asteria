@@ -16,6 +16,9 @@ SHAPE_COLOURS = {
     "flat_circle": "#eb6834",
     "cruciform": "#1baf7a",
     "hemispherical": "#eda100",
+    "flat_square": "#8a5cd1",
+    "flat_octagon": "#d1497f",
+    "conical": "#6b6a64",
 }
 INK, INK2, GRID, BAND, SURFACE = "#0b0b0b", "#52514e", "#e4e3df", "#ecebe7", "#fcfcfb"
 FOOTER = "Generated with cansat_design (Python, written with Claude Code, Nov 2026)"

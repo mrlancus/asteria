@@ -102,3 +102,29 @@ def test_live_packet_fits_duty_cycle():
     r = Config().radio
     assert r.payload_bytes == sum(n * b for _, n, b in r.packet) <= r.max_payload_bytes
     assert lora_airtime_s(r.payload_bytes, r.spreading_factor, r.bandwidth_hz) * r.packets_per_s <= r.max_duty_cycle
+
+
+def _area(poly):
+    x, y = poly[:, 0], poly[:, 1]
+    return 0.5 * abs(sum(x[i] * y[i - 1] - x[i - 1] * y[i] for i in range(len(x))))
+
+
+def test_new_shapes_have_the_right_area():
+    assert _area(P.canopy_geometry("flat_square", 0.05, 0).pieces[0]) == pytest.approx(0.05)
+    assert _area(P.canopy_geometry("flat_octagon", 0.05, 0).pieces[0]) == pytest.approx(0.05)
+    c = P.canopy_geometry("conical", 0.05, 20, n_gores=8)
+    assert 8 * _area(c.pieces[0]) == pytest.approx(0.05 * (1 - 0.2 ** 2), rel=0.03)  # flat gores ≈ cone surface
+    assert c.hole_area_m2 == pytest.approx(0.05 * 0.2 ** 2)
+
+
+def test_fabric_layout_keeps_pieces_on_the_fabric_and_apart():
+    from matplotlib.path import Path as MplPath
+    from cansat_design.layout import LayoutItem, build_layout
+    lay = build_layout(Config(), [LayoutItem("flat_hexagon", 18, 12, 2, True), LayoutItem("conical", 18, 12, 1)],
+                       width_mm=600, length_mm=800)
+    assert lay.counts[0] >= 2 and lay.counts[1] == 1
+    for p in lay.placed:
+        assert p.cut.min() >= 0 and p.cut[:, 0].max() <= 600 and p.cut[:, 1].max() <= 800
+    for i, a in enumerate(lay.placed):          # no cut outline has a vertex inside another piece
+        for b in lay.placed[i + 1:]:
+            assert not MplPath(b.cut).contains_points(a.cut).any()

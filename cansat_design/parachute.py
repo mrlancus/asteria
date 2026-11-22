@@ -3,10 +3,10 @@
 Conventions (see README for the reasoning):
 - Cd0 is referenced to the canopy's nominal (constructed) fabric area S0, the
   usual convention in parachute handbooks (e.g. Knacke). For flat shapes S0 is
-  the flat outline area; for the hemisphere it is the curved surface area.
+  the flat outline area; for the hemisphere and cone it is the curved surface area.
 - "Canopy width" W (used for the spill-hole % and line length) is: across flats
-  for the hexagon, diameter for the circle, total span for the cruciform and
-  inflated diameter for the hemisphere.
+  for the hexagon and octagon, side for the square, diameter for the circle,
+  total span for the cruciform and inflated (skirt) diameter for the hemisphere and cone.
 - Spill hole: λ = hole area / gross area. Drag area = Cd0 · S_gross·(1 − λ) · (1 − k·λ),
   i.e. we lose the fabric area AND a little Cd. k = 1 by default (tunable).
 """
@@ -32,7 +32,13 @@ SHAPES = {
     "flat_circle": ShapeInfo(0.75, 8, 0.03, "Flat circle"),
     "cruciform": ShapeInfo(0.70, 8, 0.10, "Cruciform"),
     "hemispherical": ShapeInfo(0.70, 8, 0.05, "Hemispherical"),  # ≈ 1.4 on projected area
+    # Added Nov 2026 – Cd0 from the usual handbook ranges (flat square/polygon 0.75–0.80,
+    # conical 0.75–0.90); swing damping is a guess like the others
+    "flat_square": ShapeInfo(0.75, 8, 0.03, "Flat square"),
+    "flat_octagon": ShapeInfo(0.78, 8, 0.04, "Flat octagon"),
+    "conical": ShapeInfo(0.80, 8, 0.06, "Conical (gores)"),
 }
+GORED = {"hemispherical", "conical"}       # cut from several identical gores
 
 
 def required_drag_area(mass_kg: float, rho: float, v: float) -> float:
@@ -121,6 +127,43 @@ def _cruciform(area, p, ratio):
                   [outline])
 
 
+def _square(area, p):
+    a = math.sqrt(area)
+    d = p * a
+    h = a / 2
+    outline = np.array([[h, h], [-h, h], [-h, -h], [h, -h]])
+    return Canopy("flat_square", area, p * 100, a, d, math.pi * d ** 2 / 4, 4 * a + math.pi * d,
+                  {"side": a, "diagonal": a * math.sqrt(2)}, [outline])
+
+
+def _octagon(area, p):
+    s = math.sqrt(area / (2 * (1 + math.sqrt(2))))          # A = 2(1 + √2)·s²
+    flats = s * (1 + math.sqrt(2))
+    R = s / (2 * math.sin(math.pi / 8))
+    d = p * flats
+    ang = np.radians(np.arange(8) * 45 + 22.5)               # flat edges top and bottom
+    outline = np.column_stack([R * np.cos(ang), R * np.sin(ang)])
+    return Canopy("flat_octagon", area, p * 100, flats, d, math.pi * d ** 2 / 4, 8 * s + math.pi * d,
+                  {"side": s, "across flats": flats, "across corners": 2 * R}, [outline])
+
+
+def _cone(area, p, n_gores, half_angle_deg):
+    """Cone with half-angle θ from the axis: S0 = π·L²·sinθ (L = slant length).
+    Each flat gore is a trapezoid; the spill hole truncates the apex at s = p·L."""
+    th = math.radians(half_angle_deg)
+    L = math.sqrt(area / (math.pi * math.sin(th)))
+    R = L * math.sin(th)
+    W = 2 * R
+    s0 = p * L
+    half = lambda s: math.pi * s * math.sin(th) / n_gores
+    gore = np.array([[half(s0), s0], [half(L), L], [-half(L), L], [-half(s0), s0]])
+    side = math.hypot(half(L) - half(s0), L - s0)
+    per_gore = 2 * side + 2 * half(L) + 2 * half(s0)
+    return Canopy("conical", area, p * 100, W, p * W, p ** 2 * area, n_gores * per_gore,
+                  {"skirt diameter": W, "slant length": L, "gore length": L - s0,
+                   "gore max width": 2 * half(L)}, [gore], n_pieces=n_gores)
+
+
 def gore_outline(r: float, n_gores: int, s_start: float = 0.0, n_pts: int = 60) -> np.ndarray:
     """Flat pattern of one hemispherical gore (without seam allowance).
 
@@ -151,7 +194,7 @@ def _hemisphere(area, p, n_gores):
 
 
 def canopy_geometry(shape: str, gross_area_m2: float, spill_pct: float,
-                    cruciform_ratio: float = 3.0, n_gores: int = 8) -> Canopy:
+                    cruciform_ratio: float = 3.0, n_gores: int = 8, cone_deg: float = 60.0) -> Canopy:
     p = spill_pct / 100
     if not 0 <= p < 0.5:
         raise ValueError("spill hole must be 0–50 % of canopy width")
@@ -163,6 +206,12 @@ def canopy_geometry(shape: str, gross_area_m2: float, spill_pct: float,
         return _cruciform(gross_area_m2, p, cruciform_ratio)
     if shape == "hemispherical":
         return _hemisphere(gross_area_m2, p, n_gores)
+    if shape == "flat_square":
+        return _square(gross_area_m2, p)
+    if shape == "flat_octagon":
+        return _octagon(gross_area_m2, p)
+    if shape == "conical":
+        return _cone(gross_area_m2, p, n_gores, cone_deg)
     raise ValueError(f"unknown shape {shape!r}, choose from {list(SHAPES)}")
 
 
@@ -185,9 +234,9 @@ def size_canopy(pc, mass_kg: float, rho: float, v: float, shape: str | None = No
     spill = pc.spill_hole_pct if spill_pct is None else spill_pct
     cd0 = pc.cd if (pc.cd is not None and shape == pc.shape) else SHAPES[shape].cd0
     # λ does not depend on scale, so build a unit-area canopy to get it
-    lam = canopy_geometry(shape, 1.0, spill, pc.cruciform_span_ratio, pc.n_gores).vent_ratio
+    lam = canopy_geometry(shape, 1.0, spill, pc.cruciform_span_ratio, pc.n_gores, pc.cone_half_angle_deg).vent_ratio
     gross = required_drag_area(mass_kg, rho, v) / (cd0 * (1 - lam) * (1 - pc.vent_cd_loss * lam))
-    return canopy_geometry(shape, gross, spill, pc.cruciform_span_ratio, pc.n_gores)
+    return canopy_geometry(shape, gross, spill, pc.cruciform_span_ratio, pc.n_gores, pc.cone_half_angle_deg)
 
 
 # ---------------------------------------------------------------- mass
@@ -212,7 +261,7 @@ def line_length(pc, canopy: Canopy) -> float:
 
 
 def n_lines_for(pc, canopy: Canopy) -> int:
-    if canopy.shape == "hemispherical":
+    if canopy.shape in GORED:
         return pc.n_gores
     if pc.n_lines is not None and canopy.shape == pc.shape:
         return pc.n_lines

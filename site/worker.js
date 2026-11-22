@@ -22,6 +22,17 @@ async function init() {
 }
 
 onmessage = async (e) => {
+  if (e.data.kind === "layout") {
+    try {
+      py.globals.set("params_json", JSON.stringify(e.data.params));
+      py.globals.set("layout_json", JSON.stringify(e.data.layout));
+      const out = py.runPython("web_api.layout(params_json, layout_json)");
+      postMessage({ type: "layout", result: JSON.parse(out) });
+    } catch (err) {
+      postMessage({ type: "layout-error", text: String(err) });
+    }
+    return;
+  }
   try {
     py.globals.set("params_json", JSON.stringify(e.data.params));
     py.globals.set("with_sweeps", e.data.sweeps);

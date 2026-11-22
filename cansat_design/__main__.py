@@ -48,7 +48,7 @@ def summary(d) -> str:
         mark = "*" if s == pc.shape else " "
         add(f" {mark}{P.SHAPES[s].label:<15}{cd0:5.2f}{c.gross_area_m2:9.4f}{c.width_m * 100:10.1f}"
             f"{c.hole_d_m * 100:9.1f}{m.total_g:8.1f}  {dims} cm")
-    add("  (* = chosen shape; hemispherical needs "
+    add("  (* = chosen shape; hemispherical and conical need "
         f"{pc.n_gores} gores of the shape in the SVG when chosen)")
 
     c, m = d.canopy, d.chute

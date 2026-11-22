@@ -41,8 +41,7 @@ def _png(path) -> str:
         return base64.b64encode(f.read()).decode()
 
 
-def run(params_json: str, with_sweeps: bool = True) -> str:
-    p = json.loads(params_json)
+def _config(p) -> Config:
     cfg = Config()
     pc = cfg.parachute
     pc.shape = p["shape"]
@@ -72,7 +71,13 @@ def run(params_json: str, with_sweeps: bool = True) -> str:
         cfg.launch.time_utc = datetime.fromisoformat(p["launch_time"])
     cfg.launch.latitude_deg = float(p.get("latitude") or cfg.launch.latitude_deg)
     cfg.launch.longitude_deg = float(p.get("longitude") or cfg.launch.longitude_deg)
+    return cfg
 
+
+def run(params_json: str, with_sweeps: bool = True) -> str:
+    p = json.loads(params_json)
+    cfg = _config(p)
+    pc = cfg.parachute
     d = design(cfg)
     os.makedirs(OUT, exist_ok=True)
     images = {"descent": _png(plots.plot_descent(d, OUT))}
@@ -117,4 +122,25 @@ def run(params_json: str, with_sweeps: bool = True) -> str:
         },
         "images": images,
         "svgs": svg_files(d.canopy, pc),
+    })
+
+
+def layout(params_json: str, layout_json: str) -> str:
+    """Nest the chosen canopy designs on the fabric; return the preview, full-size SVG and A4 PDF."""
+    from cansat_design import layout as LY
+    cfg = _config(json.loads(params_json))
+    q = json.loads(layout_json)
+    items = [LY.LayoutItem(d["shape"], float(d["spill"]), float(d["speed"]), int(d["qty"]), bool(d["fill"]))
+             for d in q["designs"]]
+    if not items:
+        raise ValueError("Pick at least one design.")
+    lay = LY.build_layout(cfg, items, float(q["width_mm"]), float(q["length_mm"]), float(q["gap_mm"]))
+    pw, ph, nx, ny = LY.page_grid(lay)
+    return json.dumps({
+        "designs": [{"label": lbl, "count": n, "pieces": c.n_pieces, "width_cm": c.width_m * 100}
+                    for (lbl, c, _), n in zip(lay.designs, lay.counts)],
+        "unplaced": [{"label": lay.designs[i][0], "missing": m} for i, m in lay.unplaced],
+        "used_m2": lay.used_m2, "fabric_m2": lay.fabric_m2, "pages": nx * ny, "rows": ny, "cols": nx,
+        "svg": LY.layout_svg(lay),
+        "pdf": base64.b64encode(LY.a4_pdf(lay)).decode(),
     })
