@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1700" height="900" viewBox="0 0 1700 900"><title>Asteria CanSat flight software flow</title><defs><marker id="a2a5bb8" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#2a5bb8"/></marker><marker id="s2a5bb8" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M10,0 L0,5 L10,10 z" fill="#2a5bb8"/></marker><marker id="ac62b2b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#c62b2b"/></marker><marker id="sc62b2b" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M10,0 L0,5 L10,10 z" fill="#c62b2b"/></marker><marker id="a7442b8" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#7442b8"/></marker><marker id="s7442b8" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M10,0 L0,5 L10,10 z" fill="#7442b8"/></marker><marker id="a6b6a64" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#6b6a64"/></marker><marker id="s6b6a64" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M10,0 L0,5 L10,10 z" fill="#6b6a64"/></marker></defs><rect width="100%" height="100%" fill="#ffffff"/><text x="20" y="34" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="bold" text-anchor="start" fill="#222">Asteria CanSat – flight software (state machine and main loop)</text>
+<text x="20" y="56" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="normal" text-anchor="start" fill="#555">CircuitPython on the Pico 2 · thresholds are starting values, tuned in bench and drop tests</text>
+<rect x="20" y="75" width="1660" height="330" rx="12" fill="none" stroke="#333" stroke-width="1.4" stroke-dasharray="0"/>
+<text x="32" y="95" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="bold" text-anchor="start" fill="#333">Flight states</text>
+<rect x="40" y="120" width="300" height="110" rx="8" fill="#e8eefb" stroke="#2a5bb8" stroke-width="1.6"/>
+<text x="190.0" y="161.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="bold" text-anchor="middle" fill="#111">1. Start-up</text>
+<text x="190.0" y="180.6" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="normal" text-anchor="middle" fill="#444">init sensors, radio, 4G</text>
+<text x="190.0" y="199.6" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="normal" text-anchor="middle" fill="#444">self-test, log errors</text>
+<rect x="365" y="120" width="300" height="110" rx="8" fill="#e8eefb" stroke="#2a5bb8" stroke-width="1.6"/>
+<text x="515.0" y="161.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="bold" text-anchor="middle" fill="#111">2. On the pad</text>
+<text x="515.0" y="180.6" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="normal" text-anchor="middle" fill="#444">log + telemetry at 1 Hz</text>
+<text x="515.0" y="199.6" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="normal" text-anchor="middle" fill="#444">4G connects, ground ref.</text>
+<rect x="690" y="120" width="300" height="110" rx="8" fill="#eef6f8" stroke="#0f8fa3" stroke-width="1.6"/>
+<text x="840.0" y="161.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="bold" text-anchor="middle" fill="#111">3. Launch / ascent</text>
+<text x="840.0" y="180.6" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="normal" text-anchor="middle" fill="#444">full-rate logging</text>
+<text x="840.0" y="199.6" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="normal" text-anchor="middle" fill="#444">(inside the rocket)</text>
+<rect x="1015" y="120" width="300" height="110" rx="8" fill="#e3f6ec" stroke="#1b8f5a" stroke-width="1.6"/>
+<text x="1165.0" y="161.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="bold" text-anchor="middle" fill="#111">4. Descent</text>
+<text x="1165.0" y="180.6" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="normal" text-anchor="middle" fill="#444">full-rate logging, 1 Hz LoRa</text>
+<text x="1165.0" y="199.6" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="normal" text-anchor="middle" fill="#444">4G streams from buffer</text>
+<rect x="1340" y="120" width="300" height="110" rx="8" fill="#f1e9fb" stroke="#7442b8" stroke-width="1.6"/>
+<text x="1490.0" y="161.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="bold" text-anchor="middle" fill="#111">5. Landed</text>
+<text x="1490.0" y="180.6" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="normal" text-anchor="middle" fill="#444">keep sending the buffer</text>
+<text x="1490.0" y="199.6" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="normal" text-anchor="middle" fill="#444">beacon for recovery</text>
+<path d="M 340,175 L 365,175" fill="none" stroke="#2a5bb8" stroke-width="2.4" marker-end="url(#a2a5bb8)"/>
+<text x="352" y="262" font-family="Arial, Helvetica, sans-serif" font-size="11.5" font-weight="bold" text-anchor="middle" fill="#2a5bb8">self-test done</text>
+<text x="352" y="278" font-family="Arial, Helvetica, sans-serif" font-size="11.5" font-weight="normal" text-anchor="middle" fill="#2a5bb8"></text>
+<path d="M 665,175 L 690,175" fill="none" stroke="#2a5bb8" stroke-width="2.4" marker-end="url(#a2a5bb8)"/>
+<text x="677" y="262" font-family="Arial, Helvetica, sans-serif" font-size="11.5" font-weight="bold" text-anchor="middle" fill="#2a5bb8">accel &gt; ~3 g for 0.2 s</text>
+<text x="677" y="278" font-family="Arial, Helvetica, sans-serif" font-size="11.5" font-weight="normal" text-anchor="middle" fill="#2a5bb8">(launch detected)</text>
+<path d="M 990,175 L 1015,175" fill="none" stroke="#2a5bb8" stroke-width="2.4" marker-end="url(#a2a5bb8)"/>
+<text x="1002" y="262" font-family="Arial, Helvetica, sans-serif" font-size="11.5" font-weight="bold" text-anchor="middle" fill="#2a5bb8">pressure rising (falling</text>
+<text x="1002" y="278" font-family="Arial, Helvetica, sans-serif" font-size="11.5" font-weight="normal" text-anchor="middle" fill="#2a5bb8">height) after apogee</text>
+<path d="M 1315,175 L 1340,175" fill="none" stroke="#2a5bb8" stroke-width="2.4" marker-end="url(#a2a5bb8)"/>
+<text x="1327" y="262" font-family="Arial, Helvetica, sans-serif" font-size="11.5" font-weight="bold" text-anchor="middle" fill="#2a5bb8">still + pressure steady 5 s</text>
+<text x="1327" y="278" font-family="Arial, Helvetica, sans-serif" font-size="11.5" font-weight="normal" text-anchor="middle" fill="#2a5bb8">(landing detected)</text>
+<text x="40" y="330" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="normal" text-anchor="start" fill="#333">In every state: watchdog timer restarts the Pico if the code hangs; a failed sensor is logged and skipped, the others keep running.</text>
+<text x="40" y="352" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="normal" text-anchor="start" fill="#333">Timeout back-ups: if launch is missed, switch to full rate on a fall in pressure; if landing is missed, after 10 minutes.</text>
+<text x="40" y="374" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="bold" text-anchor="start" fill="#d9731a">Telemetry once a second from power-on to the end – the compulsory primary mission (T and P).</text>
+<rect x="20" y="425" width="1660" height="400" rx="12" fill="none" stroke="#333" stroke-width="1.4" stroke-dasharray="0"/>
+<text x="32" y="445" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="bold" text-anchor="start" fill="#333">Main loop (each pass ~5 ms; every sensor read on its own schedule)</text>
+<rect x="40" y="480" width="300" height="150" rx="8" fill="#fff0e0" stroke="#d9731a" stroke-width="1.6"/>
+<text x="190.0" y="524.25" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="bold" text-anchor="middle" fill="#111">Read sensors when due</text>
+<text x="190.0" y="542.25" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="normal" text-anchor="middle" fill="#444">BMP388 25 Hz · SHT45 5 Hz</text>
+<text x="190.0" y="560.25" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="normal" text-anchor="middle" fill="#444">AS7341 5 Hz · LTR390 2 Hz</text>
+<text x="190.0" y="578.25" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="normal" text-anchor="middle" fill="#444">BNO085 100 Hz · LSM6DSO32 104 Hz</text>
+<text x="190.0" y="596.25" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="normal" text-anchor="middle" fill="#444">GPS 1 Hz</text>
+<rect x="370" y="480" width="300" height="150" rx="8" fill="#e8eefb" stroke="#2a5bb8" stroke-width="1.6"/>
+<text x="520.0" y="542.25" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="bold" text-anchor="middle" fill="#111">Timestamp + pack</text>
+<text x="520.0" y="560.25" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="normal" text-anchor="middle" fill="#444">ms since boot + GPS time</text>
+<text x="520.0" y="578.25" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="normal" text-anchor="middle" fill="#444">binary records</text>
+<rect x="700" y="480" width="300" height="150" rx="8" fill="#e8eefb" stroke="#2a5bb8" stroke-width="1.6"/>
+<text x="850.0" y="542.25" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="bold" text-anchor="middle" fill="#111">Write to flash</text>
+<text x="850.0" y="560.25" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="normal" text-anchor="middle" fill="#444">full rate after launch</text>
+<text x="850.0" y="578.25" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="normal" text-anchor="middle" fill="#444">= the 4G send buffer</text>
+<rect x="1030" y="480" width="300" height="150" rx="8" fill="#f1e9fb" stroke="#7442b8" stroke-width="1.6"/>
+<text x="1180.0" y="542.25" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="bold" text-anchor="middle" fill="#111">Every 1 s: LoRa packet</text>
+<text x="1180.0" y="560.25" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="normal" text-anchor="middle" fill="#444">T, P + 1 s means of all</text>
+<text x="1180.0" y="578.25" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="normal" text-anchor="middle" fill="#444">science · sequence number</text>
+<rect x="1360" y="480" width="300" height="150" rx="8" fill="#f1e9fb" stroke="#7442b8" stroke-width="1.6"/>
+<text x="1510.0" y="542.25" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="bold" text-anchor="middle" fill="#111">4G sender</text>
+<text x="1510.0" y="560.25" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="normal" text-anchor="middle" fill="#444">sends unsent records</text>
+<text x="1510.0" y="578.25" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="normal" text-anchor="middle" fill="#444">resends after drop-outs</text>
+<path d="M 340,555 L 370,555" fill="none" stroke="#2a5bb8" stroke-width="2.4" marker-end="url(#a2a5bb8)"/>
+<path d="M 670,555 L 700,555" fill="none" stroke="#2a5bb8" stroke-width="2.4" marker-end="url(#a2a5bb8)"/>
+<path d="M 1000,555 L 1030,555" fill="none" stroke="#2a5bb8" stroke-width="2.4" marker-end="url(#a2a5bb8)"/>
+<path d="M 1330,555 L 1360,555" fill="none" stroke="#2a5bb8" stroke-width="2.4" marker-end="url(#a2a5bb8)"/>
+<path d="M 1510,630 L 1510,700 L 190,700 L 190,630" fill="none" stroke="#2a5bb8" stroke-width="2" stroke-dasharray="5,4" marker-end="url(#a2a5bb8)"/>
+<text x="850" y="694" font-family="Arial, Helvetica, sans-serif" font-size="11" text-anchor="middle" fill="#2a5bb8" font-weight="bold" paint-order="stroke" stroke="#fff" stroke-width="4">repeat</text>
+<text x="40" y="745" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="normal" text-anchor="start" fill="#333">On the ground (Python on the laptop): decode LoRa + 4G packets → merge by sequence number → plots vs height → tilt correction (BNO085 + sun position)</text>
+<text x="40" y="767" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="normal" text-anchor="start" fill="#333">→ colour ratios (blue/red) and UV/visible vs height → compare with the ground reference station and a Rayleigh + haze prediction.</text>
+<text x="40" y="800" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="normal" text-anchor="start" fill="#555">Libraries: adafruit_bmp3xx, adafruit_sht4x, adafruit_as7341, adafruit_ltr390, adafruit_bno08x, adafruit_lsm6ds, adafruit_gps, SX126x driver (to confirm), A7670E AT commands over UART.</text>
+<rect x="20" y="844" width="22" height="14" rx="3" fill="#fff0e0" stroke="#d9731a" stroke-width="1.4"/>
+<text x="50" y="855" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="normal" text-anchor="start" fill="#222">Sensors</text>
+<rect x="195" y="844" width="22" height="14" rx="3" fill="#e8eefb" stroke="#2a5bb8" stroke-width="1.4"/>
+<text x="225" y="855" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="normal" text-anchor="start" fill="#222">Processing / storage</text>
+<rect x="370" y="844" width="22" height="14" rx="3" fill="#eef6f8" stroke="#0f8fa3" stroke-width="1.4"/>
+<text x="400" y="855" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="normal" text-anchor="start" fill="#222">Launch phase</text>
+<rect x="545" y="844" width="22" height="14" rx="3" fill="#e3f6ec" stroke="#1b8f5a" stroke-width="1.4"/>
+<text x="575" y="855" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="normal" text-anchor="start" fill="#222">Descent (science)</text>
+<rect x="720" y="844" width="22" height="14" rx="3" fill="#f1e9fb" stroke="#7442b8" stroke-width="1.4"/>
+<text x="750" y="855" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="normal" text-anchor="start" fill="#222">Communications</text>
+<text x="20" y="885" font-family="Arial, Helvetica, sans-serif" font-size="11" font-weight="normal" text-anchor="start" fill="#666">Diagram drawn with Claude Code (Anthropic), Nov 2026 – reference as AI-assisted.</text></svg>
