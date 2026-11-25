@@ -29,7 +29,7 @@
   <rect class="box" x="40" y="205" width="220" height="60" rx="5"/>
   <text class="t" x="150" y="228">Master power switch</text><text class="s" x="150" y="248">+ charger (on SX1262 board)</text>
   <rect class="tbd" x="40" y="320" width="220" height="62" rx="5"/>
-  <text class="t" x="150" y="344">5 V boost converter</text><text class="s" x="150" y="364">to confirm – 4G HAT needs 5 V</text>
+  <text class="t" x="150" y="344">5 V boost converter</text><text class="s" x="150" y="364">4G HAT needs 5 V; rated ≥ 2 A</text>
   <rect class="box" x="40" y="425" width="220" height="44" rx="5"/>
   <text class="t" x="150" y="452">1000 µF capacitor</text>
 
@@ -45,7 +45,7 @@
   <text class="s" x="570" y="122" font-style="italic">Pimoroni Pico Omnibus (94 × 52 mm)</text>
   <rect class="box" x="390" y="140" width="360" height="160" rx="5" style="fill:#e8f1e4"/>
   <text class="t" x="570" y="172">Raspberry Pi Pico 2 (RP2350)</text>
-  <text class="s" x="570" y="196">flight computer – CircuitPython</text>
+  <text class="s" x="570" y="196">flight computer – MicroPython</text>
   <text class="s" x="570" y="218">flash: full-rate data log + 4G send buffer</text>
   <text class="s" x="570" y="240">launch detection, 1 Hz telemetry packets</text>
   <text class="s" x="570" y="270">3V3 OUT → all sensors + GPS (≤ 300 mA)</text>
@@ -108,7 +108,7 @@
   <path class="uart" d="M1016,654 H1066"/><text class="l" x="1076" y="658">UART</text>
   <path class="spi" d="M1016,678 H1066"/><text class="l" x="1076" y="682">SPI</text>
   <path class="rf" d="M1016,702 H1066"/><text class="l" x="1076" y="706">RF / antenna</text>
-  <rect class="tbd" x="1016" y="716" width="50" height="16"/><text class="l" x="1076" y="729">Not yet on parts list – to confirm</text>
+  <rect class="tbd" x="1016" y="716" width="50" height="16"/><text class="l" x="1076" y="729">Not yet on parts list</text>
 
   <!-- GROUND PANEL -->
   <rect class="panel" x="20" y="790" width="1360" height="270" rx="8"/>
