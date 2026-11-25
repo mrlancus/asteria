@@ -29,6 +29,7 @@ SOURCES = [
     ("Fasteners", "M2 screws nuts nylon hot glue tape", None, "", "Workshop consumables; £0 assumes existing stock. Add a budget if buying new."),
     ("A7670E", "Waveshare A7670E Cat-1 HAT", HUT + "a7670e-lte-cat-1-hat-for-raspberry-pi-2g-gsm-gprs", "The Pi Hut", "Sold out at Pi Hut on 19 Nov – use Notify me. Wire its UART, power-key and power to the Pico; turn 2G off."),
     ("LTE FPC", "SparkFun WRL-17841 LTE FPC antenna", "https://proto-pic.co.uk/product/antenna-wide-band-4g-lte-internal-lora-wrl-17841", "Proto-Pic", "u.FL, 53 × 24 mm, sticks inside the shell wall. Check it matches the HAT's antenna socket."),
+    ("U3V40F5", "Pololu U3V40F5 5V step-up regulator", HUT + "5v-step-up-voltage-regulator-u3v40f5", "The Pi Hut", "5 V out from 1.3–5 V in, ~4 A input, 15 × 15 mm, 1.5 g. No short-circuit protection; gets hot under load. Feed from VSYS after the master switch."),
     ("1000", "1000uF low ESR electrolytic capacitor 6.3V", None, "", "Check voltage rating, polarity, dimensions and ESR for the modem supply."),
     ("PAYG SIM", "giffgaff SIM", "https://www.giffgaff.com/", "giffgaff", "Free SIM, ~£6 2 GB goodybag. Turn the PIN off, set the APN; check launch-site coverage."),
     ("shipping", "", "https://thepihut.com/pages/delivery", "Pi Hut delivery", "Pi Hut DHL next day £9.99 + Amazon ~£4.99 (free with Prime) + Proto-Pic ~£5 – confirm at checkout."),
