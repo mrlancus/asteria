@@ -31,8 +31,6 @@ SOURCES = [
     ("LTE FPC", "SparkFun WRL-17841 LTE FPC antenna", "https://proto-pic.co.uk/product/antenna-wide-band-4g-lte-internal-lora-wrl-17841", "Proto-Pic", "u.FL, 53 × 24 mm, sticks inside the shell wall. Check it matches the HAT's antenna socket."),
     ("U3V40F5", "Pololu U3V40F5 5V step-up regulator", HUT + "5v-step-up-voltage-regulator-u3v40f5", "The Pi Hut", "5 V out from 1.3–5 V in, ~4 A input, 15 × 15 mm, 1.5 g. No short-circuit protection; gets hot under load. Feed from VSYS after the master switch."),
     ("1000", "1000uF low ESR electrolytic capacitor 6.3V", None, "", "Check voltage rating, polarity, dimensions and ESR for the modem supply."),
-    ("microSD breakout", "Adafruit micro SD breakout 3V 4682", HUT + "adafruit-micro-sd-spi-or-sdio-card-breakout-board-3v-only", "The Pi Hut", "3 V only (fine for the Pico). Wire to SPI0: GP16–GP19. MicroPython sdcard driver."),
-    ("microSD card", "microSD card 16GB", None, "", "Any 8–16 GB card, FAT32. A branded or industrial card copes better with cold and vibration."),
     ("PAYG SIM", "giffgaff SIM", "https://www.giffgaff.com/", "giffgaff", "Free SIM, ~£6 2 GB goodybag. Turn the PIN off, set the APN; check launch-site coverage."),
     ("shipping", "", "https://thepihut.com/pages/delivery", "Pi Hut delivery", "Pi Hut DHL next day £9.99 + Amazon ~£4.99 (free with Prime) + Proto-Pic ~£5 – confirm at checkout."),
 ]

@@ -53,9 +53,9 @@ Quantities and planned rates. The competition minimum is 1 Hz; we **log faster t
 | GPS position and altitude | ATGM336H | 1 Hz | location, drift/wind (GPS altitude ±10 m) |
 | Ground reference: spectral, UV, visible | AS7341 + LTR390 on the ground station | same as flight | separates sky changes from height changes |
 | Telemetry packet (LoRa) | SX1262 | 1 Hz | rule; UK 433 MHz band 10 mW ERP and (to confirm, IR 2030) ≤10 % duty cycle. Compulsory T/P plus a downsampled copy of all science (~186 bytes, SF7/500 kHz, ~7 % duty) as the backup if 4G drops |
-| Full-rate data (4G) | A7670E LTE Cat-1 | all streams at full rate | **all data is sent live over 4G while the CanSat is in the air**; the CanSat is recovered and its on-board microSD log is the backup used to verify results (~3.4 KB/s ≈ 35 kbps with overhead, ~4 MB per flight); write to flash first, send from the buffer, resend after signal drops (in the rocket, after landing); UDP or MQTT with sequence numbers |
+| Full-rate data (4G) | A7670E LTE Cat-1 | all streams at full rate | **all data is sent live over 4G while the CanSat is in the air**; the CanSat is recovered and its on-board flash log is the backup used to verify results (~3.4 KB/s ≈ 35 kbps with overhead, ~4 MB per flight); write to flash first, send from the buffer, resend after signal drops (in the rocket, after landing); UDP or MQTT with sequence numbers |
 
-Data volume: the 4G stream is the primary science copy, the LoRa packet the backup, and the microSD log (read after recovery) verifies both. ~3 KB/s binary at full rate → ~2 MB per 10 min: the microSD takes the full-rate log from the pad onwards; Pico flash (~2 MB free alongside MicroPython) is the 4G send buffer.
+Data volume: the 4G stream is the primary science copy, the LoRa packet the backup, and the Pico flash log (read after recovery) verifies both. ~3 KB/s binary at full rate → ~2 MB per 10 min; tight on Pico 2 flash alongside MicroPython (~2 MB free), so full rate only after launch detection. The flash log is also the 4G send buffer. No microSD (decided 25 Nov 2026).
 
 Why each measurement:
 - **Spectral intensity (most important):** how each wavelength band changes during descent → wavelength-dependent scattering and attenuation, relevant to aerosols, clouds and haze on other planets. Blue should be affected more than red (Rayleigh scattering).
@@ -92,7 +92,7 @@ Expected accuracy (estimates, to be confirmed by simulation): colour ratio ±0.3
 
 **Open points:** AS7341 points up (assumed – confirm); LTR390 alternates UV/ALS modes in firmware; **firmware language: MicroPython** (decided Nov 2026) – `micropySX126X` drives the SX1262; MicroPython sensor drivers to be found or ported from Adafruit's open-source libraries (check the BNO085 first); the secondary-mission text above must be rewritten in our own words for reports (an older team's PDR uses very similar headings and phrasing).
 
-## Hardware (solderless build, £219.13 flight incl. 4G and fast shipping + £45.34 ground station – parts sheet, 19 Nov 2026; + £5.28 boost converter and ~£8.40 microSD, 25 Nov)
+## Hardware (solderless build, £219.13 flight incl. 4G and fast shipping + £45.34 ground station – parts sheet, 19 Nov 2026; + £5.28 boost converter, 25 Nov)
 - Raspberry Pi Pico 2 with headers (flight computer, MicroPython)
 - Waveshare SX1262 433 MHz LoRa module for Pico (includes 600 mAh LiPo, charger, power switch = master switch). Note: SX1262, not SX127x – needs an SX126x driver.
 - Pimoroni Pico Omnibus (holds Pico + LoRa module, spare pins). 94 × 52 mm, mounts lengthwise.
@@ -107,7 +107,7 @@ Expected accuracy (estimates, to be confirmed by simulation): colour ratio ±0.3
 - STEMMA QT cables + 1× STEMMA QT-to-female-socket lead (one sensor chain); female jumpers for GPS
 - PTFE 1 mm diffuser over sensor windows (passes UV)
 - **4G bulk link (Nov 2026): Waveshare A7670E LTE Cat-1 HAT** (65 × 30.5 mm, wired to the Pico with jumpers; Pi Hut sold out 19 Nov) (UART, power-key pin; 2G fallback turned off) – normal 4G network, so a cheap **pay-as-you-go SIM** for the CanSat works (not a student's own SIM; disable the PIN, set the APN). ~1 A transmit bursts → **1000 µF capacitor** on its supply and a brown-out test with the Pico; the 600 mAh LiPo's peak current must be confirmed. **Flexible FPC LTE antenna inside the PETG shell wall** (the 30 mm rule covers external antennas only). Check coverage at the launch site (organisers allow a cellular module – don't describe how this was confirmed in reports). Its own UART – the GPS takes the other one; GPIO allocation in `docs/pin_map.md`. **Needs a 5 V supply** (the non-GNSS HAT has no 3.7 V VBAT input) → **Pololu U3V40F5 5 V boost converter** (15 × 15 mm, 1.5 g, ~4 A input, Pi Hut) fed from VSYS after the master switch; 1 A at 5 V draws ~1.5 A from the LiPo (90 % efficient). SIM7080G (LTE-M) rejected: phone/PAYG SIMs usually can't use LTE-M.
-- Full-rate log on a microSD card – Adafruit ADA4682 3 V microSD breakout (£3.40, Pi Hut) on SPI0 (GP16–GP19) + 8–16 GB card; Pico flash is the 4G send buffer
+- Data logged to Pico flash (full rate after launch detection) – the 4G send buffer and the verification copy after recovery; no microSD
 - Orange ripstop nylon canopy, ball-bearing swivel, 3D-printed PETG shell, ballast to 300–350 g
 - Ground station: second Pico 2 + SX1262 module on a laptop over USB, plus the **ground reference** AS7341 + LTR390 (~£22, ground support equipment – excluded from the £400 budget, to confirm)
 - Secure every plug-in connector (hot glue/tape) for 20 g.
