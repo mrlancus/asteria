@@ -56,6 +56,7 @@ def default_components() -> list[Component]:
         Component("Waveshare A7670E LTE Cat-1 HAT (4G)", 20.0, (65, 31, 10), current_ma=30, cost_gbp=27.60),  # mostly idle on the pad; ~1 A TX bursts
         Component("SparkFun LTE FPC antenna (inside the shell wall)", 2.0, None, cost_gbp=5.00),
         Component("1000 µF capacitor (4G supply)", 2.0, (16, 10, 10), cost_gbp=3.00),
+        Component("Pololu U3V40F5 5 V boost converter (4G supply)", 1.5, (15, 15, 6), cost_gbp=5.28),  # HAT needs 5 V; price ex-VAT £4.40 – confirm
         Component("giffgaff PAYG SIM + 2 GB bundle", 0.5, None, cost_gbp=6.00),
         Component("Fast UK shipping (Pi Hut DHL, Amazon, Proto-Pic)", 0.0, None, cost_gbp=19.98, estimate=False),
     ]
@@ -214,7 +215,7 @@ class Logging:
         ("LSM6DSO32 accel + gyro", 104, 16),
         ("GPS fix", 1, 20),
     )
-    free_flash_mb: float = 2.0           # Pico 2 has 4 MB; CircuitPython + code take ~2 MB (estimate – check)
+    free_flash_mb: float = 2.0           # Pico 2 has 4 MB; MicroPython + code take ~2 MB (estimate – check)
     full_rate_minutes_needed: float = 10.0  # launch → landing + recovery margin
     sht45_time_constant_s: float = 2.0
 
