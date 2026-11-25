@@ -100,14 +100,8 @@
   </g>
   <path class="i2c" d="M1020,157 V172 M1020,224 V239 M1020,291 V306 M1020,358 V373 M1020,425 V440"/>
 
-  <!-- microSD -->
-  <path class="spi" d="M750,215 H960 V541 H1000" marker-end="url(#a)" marker-start="url(#a)"/>
-  <text class="l" x="966" y="400">SPI0</text>
-  <rect class="box" x="1000" y="515" width="340" height="52" rx="5"/>
-  <text class="t" x="1170" y="536">microSD card</text><text class="s" x="1170" y="555">full-rate log · verification copy after recovery</text>
-
-  <!-- legend -->
-  <g transform="translate(0,30)">
+    <!-- legend -->
+  <g>
   <rect x="1000" y="560" width="340" height="160" rx="6" fill="#fff" stroke="#bbb"/>
   <text x="1016" y="584" font-size="14" font-weight="bold">Key</text>
   <path class="pwr" d="M1016,606 H1066"/><text class="l" x="1076" y="610">Power</text>
