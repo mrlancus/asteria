@@ -218,7 +218,7 @@ def software():
     s.text(40, 767, "→ colour ratios (blue/red) and UV/visible vs height → compare with the ground reference station "
                     "and a Rayleigh + haze prediction.", 13, "normal", "start", "#333")
     s.text(40, 800, "Libraries: adafruit_bmp3xx, adafruit_sht4x, adafruit_as7341, adafruit_ltr390, adafruit_bno08x, "
-                    "adafruit_lsm6ds, adafruit_gps, SX126x driver (to confirm), A7670E AT commands over UART.",
+                    "adafruit_lsm6ds, adafruit_gps, micropySX126X (SX1262 LoRa), A7670E 4G AT commands over UART.",
            12, "normal", "start", "#555")
 
     legend(s, 20, 855, [("primary", "Sensors"), ("obc", "Processing / storage"), ("nav", "Launch phase"),
